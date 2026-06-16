@@ -1,0 +1,9 @@
+[project]
+name = "aisp-baseball"
+version = "0.1.0"
+description = "AISP Baseball Analytics Engine for MLB rosters, stats, predictions, and chatbot workflows."
+requires-python = ">=3.14"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
