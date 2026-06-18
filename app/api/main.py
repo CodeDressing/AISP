@@ -725,8 +725,9 @@ def system_info() -> dict:
         "ai_chat": settings.ai_chat_enabled,
         "database": check_database_connection(),
         "platform": "AISP Baseball Analytics Engine",
-        "phase": "4.16",
+        "phase": "4.18",
         "active_sport": "MLB",
+        "warehouse_stage": "teams_and_rosters",
         "primary_data_sources": [
             "MLB Stats API",
             "Baseball Savant / Statcast",
@@ -755,6 +756,7 @@ def system_routes() -> dict:
         ],
         "admin_routes": [
             "/admin/sync/teams",
+            "/admin/sync/rosters",
             "/admin/sync/mlb",
             "/admin/sync/statcast/range",
             "/admin/database/summary",
@@ -765,13 +767,22 @@ def system_routes() -> dict:
             "/admin/statcast/player/{player_id}",
             "/admin/data-sources/status",
         ],
-        "safe_first_sync_order": [
+        "safe_sync_order": [
             "1. POST /admin/sync/teams",
             "2. GET /teams",
-            "3. GET /admin/database/summary",
-            "4. POST /admin/sync/mlb",
-            "5. POST /admin/sync/statcast/range",
+            "3. POST /admin/sync/rosters",
+            "4. GET /players/search?q=judge",
+            "5. GET /admin/database/summary",
+            "6. POST /admin/sync/statcast/range",
         ],
+        "warehouse_layers": {
+            "teams": "active",
+            "rosters": "active",
+            "players": "active_after_roster_sync",
+            "player_stats": "planned",
+            "statcast": "partial",
+            "machine_learning": "foundation",
+        },
         "data_sources": [
             {
                 "name": "MLB Stats API",
@@ -783,11 +794,6 @@ def system_routes() -> dict:
                 "status": "active_partial",
                 "purpose": "Pitch-level, batted-ball, expected-stat, and advanced tracking data",
             },
-        ],
-        "notes": [
-            "Use /admin/sync/teams before the full MLB warehouse sync.",
-            "Use small Statcast date ranges first before larger backfills.",
-            "Full automation can be added after manual sync endpoints are stable.",
         ],
     }
 # ============================================================
@@ -827,7 +833,23 @@ def admin_sync_teams_only(
         "season": season,
         "teams_synced": synced,
     }
+# ============================================================
+# SECTION 16B - FULL ROSTER SYNC
+# ============================================================
 
+@app.post("/admin/sync/rosters")
+def admin_sync_full_rosters(
+    season: int = 2026,
+    db: Session = Depends(get_db),
+) -> dict:
+
+    service = RosterService(
+        db=db,
+    )
+
+    return service.sync_full_rosters(
+        season=season,
+    )
 # ============================================================
 # SECTION 16 - ENTERPRISE ADMIN & WAREHOUSE ROUTES
 # ============================================================
