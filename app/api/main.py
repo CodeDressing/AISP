@@ -105,82 +105,341 @@ from fastapi.responses import HTMLResponse
 @app.get("/", response_class=HTMLResponse)
 def root() -> str:
     return """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>AISP Baseball Analytics</title>
-        <style>
-            body {
-                margin: 0;
-                background: #050816;
-                color: white;
-                font-family: Arial, sans-serif;
-            }
+<!DOCTYPE html>
+<html>
 
-            .hero {
-                padding: 80px;
-                text-align: center;
-            }
+<head>
 
-            h1 {
-                font-size: 54px;
-                margin-bottom: 10px;
-            }
+<title>AISP Command Center</title>
 
-            p {
-                font-size: 20px;
-                color: #cbd5e1;
-            }
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-            .cards {
-                display: grid;
-                grid-template-columns: repeat(3, 1fr);
-                gap: 24px;
-                padding: 40px 80px;
-            }
+<style>
 
-            .card {
-                background: #111827;
-                border: 1px solid #1f2937;
-                border-radius: 18px;
-                padding: 28px;
-            }
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
 
-            a {
-                color: #38bdf8;
-                text-decoration: none;
-                font-weight: bold;
-            }
-        </style>
-    </head>
+body{
 
-    <body>
-        <div class="hero">
-            <h1>⚾ AISP Baseball Analytics</h1>
-            <p>Artificial Intelligence Sports Predictor — MLB analytics, predictions, rosters, and AI chatbot.</p>
-            <p><a href="/docs">Open API Docs</a> · <a href="/health">Health Check</a> · <a href="/system/routes">Routes</a></p>
-        </div>
+    background:
+    radial-gradient(circle at top left,#2563eb33,transparent 35%),
+    radial-gradient(circle at top right,#06b6d433,transparent 25%),
+    linear-gradient(180deg,#020617,#0f172a);
 
-        <div class="cards">
-            <div class="card">
-                <h2>MLB Database</h2>
-                <p>Teams, players, rosters, stats, and warehouse storage.</p>
-            </div>
+    color:white;
+    font-family:Inter,Arial,sans-serif;
+}
 
-            <div class="card">
-                <h2>Prediction Engine</h2>
-                <p>Hit probability, game predictions, player props, and future simulations.</p>
-            </div>
+.hero{
 
-            <div class="card">
-                <h2>AI Assistant</h2>
-                <p>Ask baseball questions and route them into analytics and prediction logic.</p>
-            </div>
-        </div>
-    </body>
-    </html>
-    """
+    padding:100px 60px;
+    text-align:center;
+}
 
+.logo{
+
+    font-size:18px;
+    color:#38bdf8;
+    letter-spacing:3px;
+    font-weight:800;
+}
+
+.title{
+
+    font-size:72px;
+    font-weight:900;
+    margin-top:20px;
+}
+
+.subtitle{
+
+    margin-top:20px;
+    color:#cbd5e1;
+    max-width:900px;
+    margin-left:auto;
+    margin-right:auto;
+    line-height:1.7;
+    font-size:20px;
+}
+
+.button-row{
+
+    margin-top:40px;
+}
+
+.btn{
+
+    display:inline-block;
+    margin:8px;
+    padding:14px 28px;
+    border-radius:14px;
+    text-decoration:none;
+    font-weight:700;
+}
+
+.primary{
+
+    background:#2563eb;
+    color:white;
+}
+
+.secondary{
+
+    border:1px solid #334155;
+    color:white;
+}
+
+.metrics{
+
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:20px;
+    padding:0 60px;
+}
+
+.metric{
+
+    background:#111827;
+    border:1px solid #1f2937;
+    border-radius:18px;
+    padding:25px;
+    text-align:center;
+}
+
+.metric-value{
+
+    font-size:36px;
+    font-weight:900;
+}
+
+.metric-label{
+
+    color:#94a3b8;
+    margin-top:8px;
+}
+
+.modules{
+
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:24px;
+    padding:60px;
+}
+
+.card{
+
+    background:#111827;
+    border:1px solid #1f2937;
+    border-radius:22px;
+    padding:30px;
+}
+
+.card h2{
+
+    margin-bottom:14px;
+}
+
+.card p{
+
+    color:#cbd5e1;
+    line-height:1.6;
+}
+
+.roadmap{
+
+    padding:60px;
+}
+
+.roadmap-box{
+
+    background:#111827;
+    border-radius:22px;
+    border:1px solid #1f2937;
+    padding:30px;
+}
+
+.footer{
+
+    text-align:center;
+    padding:40px;
+    color:#64748b;
+}
+
+@media(max-width:1000px){
+
+.metrics{
+grid-template-columns:1fr 1fr;
+}
+
+.modules{
+grid-template-columns:1fr;
+}
+
+.title{
+font-size:48px;
+}
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="hero">
+
+<div class="logo">
+AISP BASEBALL ANALYTICS
+</div>
+
+<div class="title">
+Enterprise AI Sports Intelligence
+</div>
+
+<div class="subtitle">
+
+Artificial Intelligence Sports Predictor.
+
+A next-generation MLB analytics platform combining
+player intelligence, team intelligence, predictive modeling,
+AI-assisted analysis, database warehousing, and future
+sportsbook intelligence.
+
+</div>
+
+<div class="button-row">
+
+<a href="/docs" class="btn primary">
+Open API Docs
+</a>
+
+<a href="/health" class="btn secondary">
+System Health
+</a>
+
+<a href="/system/routes" class="btn secondary">
+API Routes
+</a>
+
+</div>
+
+</div>
+
+<div class="metrics">
+
+<div class="metric">
+<div class="metric-value">MLB</div>
+<div class="metric-label">Sport Module</div>
+</div>
+
+<div class="metric">
+<div class="metric-value">AI</div>
+<div class="metric-label">Prediction Layer</div>
+</div>
+
+<div class="metric">
+<div class="metric-value">24/7</div>
+<div class="metric-label">Analytics Engine</div>
+</div>
+
+<div class="metric">
+<div class="metric-value">LIVE</div>
+<div class="metric-label">Render Deployment</div>
+</div>
+
+</div>
+
+<div class="modules">
+
+<div class="card">
+
+<h2>Player Intelligence</h2>
+
+<p>
+Player profiles, historical performance,
+career trends, projections, and AI-assisted
+analysis.
+</p>
+
+</div>
+
+<div class="card">
+
+<h2>Prediction Engine</h2>
+
+<p>
+Hit probabilities, home run models,
+game predictions, simulations, and future
+machine learning pipelines.
+</p>
+
+</div>
+
+<div class="card">
+
+<h2>AI Analyst</h2>
+
+<p>
+Natural language baseball research
+powered by the AISP AI routing layer.
+</p>
+
+</div>
+
+</div>
+
+<div class="roadmap">
+
+<div class="roadmap-box">
+
+<h2>Platform Roadmap</h2>
+
+<br>
+
+<p>
+
+Phase 4.01:
+Enterprise Dashboard UI
+
+<br><br>
+
+Phase 4.02:
+Player Cards, Team Cards, Leaderboards
+
+<br><br>
+
+Phase 4.03:
+Statcast Visualizations
+
+<br><br>
+
+Phase 4.04:
+Monte Carlo Simulation Engine
+
+<br><br>
+
+Phase 5.00:
+Sportsbook Intelligence Platform
+
+</p>
+
+</div>
+
+</div>
+
+<div class="footer">
+
+AISP Baseball Analytics Engine • Enterprise AI Sports Intelligence
+
+</div>
+
+</body>
+</html>
+"""
 # ============================================================
 # SECTION 08 - HEALTH ROUTES
 # ============================================================
