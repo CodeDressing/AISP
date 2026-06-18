@@ -1,11 +1,11 @@
 # ============================================================
 # AISP BASEBALL ANALYTICS ENGINE
-# PHASE 3.11 PART 1
-# ENTERPRISE STREAMLIT DASHBOARD PLATFORM
+# PHASE 4.00 PART 1
+# ENTERPRISE AI SPORTS COMMAND CENTER
 # FILE: apps/dashboard/dashboard.py
-# PURPOSE: enterprise visual frontend for MLB analytics,
-# player search, team intelligence, predictions, AI chat,
-# warehouse monitoring, and system health
+# PURPOSE: premium AI-driven frontend experience for MLB analytics,
+# player intelligence, predictions, AI assistant workflows,
+# warehouse monitoring, and enterprise sports intelligence
 # ============================================================
 
 # ============================================================
@@ -33,7 +33,7 @@ API_BASE = os.getenv(
 )
 
 st.set_page_config(
-    page_title="AISP Baseball Analytics",
+    page_title="AISP Command Center",
     page_icon="⚾",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -81,78 +81,170 @@ def api_post(
 
 
 # ============================================================
-# SECTION 04 - ENTERPRISE STYLING
+# SECTION 04 - ENTERPRISE AI DESIGN SYSTEM
 # ============================================================
 
 st.markdown(
     """
     <style>
         .stApp {
-            background: linear-gradient(180deg, #050816 0%, #0E1117 100%);
+            background:
+                radial-gradient(circle at top left, rgba(37,99,235,0.28), transparent 32%),
+                radial-gradient(circle at top right, rgba(14,165,233,0.18), transparent 28%),
+                linear-gradient(180deg, #020617 0%, #0B1120 48%, #111827 100%);
             color: #F8FAFC;
         }
 
+        section[data-testid="stSidebar"] {
+            background: linear-gradient(180deg, #020617 0%, #0F172A 100%);
+            border-right: 1px solid rgba(148,163,184,0.20);
+        }
+
+        .block-container {
+            padding-top: 2rem;
+            padding-bottom: 4rem;
+        }
+
+        .hero-panel {
+            background:
+                linear-gradient(135deg, rgba(15,23,42,0.96), rgba(30,41,59,0.76)),
+                radial-gradient(circle at top right, rgba(56,189,248,0.35), transparent 35%);
+            border: 1px solid rgba(148,163,184,0.22);
+            border-radius: 28px;
+            padding: 38px;
+            margin-bottom: 24px;
+            box-shadow: 0 24px 80px rgba(0,0,0,0.35);
+        }
+
         .main-title {
-            font-size: 48px;
-            font-weight: 900;
+            font-size: 54px;
+            font-weight: 950;
+            letter-spacing: -1.8px;
             color: #FFFFFF;
-            margin-bottom: 0px;
+            margin-bottom: 4px;
         }
 
         .main-subtitle {
             font-size: 18px;
             color: #CBD5E1;
-            margin-bottom: 30px;
+            max-width: 950px;
         }
 
-        .section-title {
-            font-size: 28px;
-            font-weight: 800;
-            color: #F8FAFC;
-            margin-top: 16px;
+        .pill-row {
+            margin-top: 22px;
+        }
+
+        .pill {
+            display: inline-block;
+            padding: 8px 14px;
+            border-radius: 999px;
+            margin-right: 8px;
             margin-bottom: 8px;
+            background: rgba(15,23,42,0.78);
+            border: 1px solid rgba(148,163,184,0.25);
+            color: #E2E8F0;
+            font-size: 13px;
+            font-weight: 700;
         }
 
-        .aisp-card {
-            background: #111827;
-            border: 1px solid #1F2937;
-            border-radius: 18px;
-            padding: 22px;
-            min-height: 120px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.20);
+        .glass-card {
+            background: rgba(15,23,42,0.76);
+            border: 1px solid rgba(148,163,184,0.22);
+            border-radius: 22px;
+            padding: 24px;
+            box-shadow: 0 14px 45px rgba(0,0,0,0.25);
+            min-height: 140px;
         }
 
-        .aisp-card h3 {
+        .glass-card h3 {
             color: #FFFFFF;
             margin-bottom: 8px;
+            font-size: 21px;
         }
 
-        .aisp-card p {
+        .glass-card p {
             color: #CBD5E1;
-            font-size: 15px;
+            font-size: 14px;
+            line-height: 1.55;
         }
 
-        .status-online {
+        .ai-card {
+            background:
+                linear-gradient(145deg, rgba(8,47,73,0.88), rgba(15,23,42,0.90));
+            border: 1px solid rgba(56,189,248,0.28);
+            border-radius: 24px;
+            padding: 26px;
+            box-shadow: 0 18px 55px rgba(14,165,233,0.12);
+        }
+
+        .metric-label {
+            color: #94A3B8;
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .metric-value {
+            color: #F8FAFC;
+            font-size: 34px;
+            font-weight: 900;
+            margin-top: 4px;
+        }
+
+        .metric-note {
+            color: #94A3B8;
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        .status-good {
             color: #22C55E;
             font-weight: 900;
         }
 
-        .status-offline {
+        .status-warn {
+            color: #F59E0B;
+            font-weight: 900;
+        }
+
+        .status-bad {
             color: #EF4444;
             font-weight: 900;
         }
 
-        .small-muted {
-            color: #94A3B8;
-            font-size: 13px;
+        .section-kicker {
+            color: #38BDF8;
+            text-transform: uppercase;
+            letter-spacing: 0.11em;
+            font-size: 12px;
+            font-weight: 900;
+            margin-bottom: 6px;
         }
 
-        .hero-panel {
-            background: radial-gradient(circle at top left, #1E3A8A 0%, #111827 45%, #020617 100%);
-            border: 1px solid #1F2937;
-            border-radius: 24px;
-            padding: 36px;
-            margin-bottom: 25px;
+        .section-heading {
+            font-size: 31px;
+            font-weight: 900;
+            color: #FFFFFF;
+            margin-bottom: 14px;
+        }
+
+        .dataframe {
+            border-radius: 14px;
+        }
+
+        div[data-testid="stMetric"] {
+            background: rgba(15,23,42,0.62);
+            border: 1px solid rgba(148,163,184,0.18);
+            padding: 18px;
+            border-radius: 18px;
+        }
+
+        .footer-note {
+            color: #64748B;
+            font-size: 13px;
+            text-align: center;
+            padding-top: 18px;
         }
     </style>
     """,
@@ -164,18 +256,18 @@ st.markdown(
 # SECTION 05 - SIDEBAR NAVIGATION
 # ============================================================
 
-st.sidebar.title("⚾ AISP")
-st.sidebar.caption("Artificial Intelligence Sports Predictor")
+st.sidebar.markdown("## ⚾ AISP")
+st.sidebar.caption("AI Sports Command Center")
 
 page = st.sidebar.radio(
     "Navigation",
     [
-        "Dashboard",
+        "Command Center",
         "Players",
         "Teams",
         "Games",
         "Predictions",
-        "AI Assistant",
+        "AI Analyst",
         "Analytics",
         "Warehouse",
         "System Health",
@@ -192,22 +284,65 @@ api_override = st.sidebar.text_input(
 if api_override:
     API_BASE = api_override.rstrip("/")
 
-st.sidebar.caption("Phase 3.11 Enterprise Dashboard")
+st.sidebar.divider()
+st.sidebar.caption("Phase 4.00 Enterprise AI Aesthetic")
 
 
 # ============================================================
-# SECTION 06 - SHARED HEADER
+# SECTION 06 - SHARED UI HELPERS
 # ============================================================
 
 def render_header(
     title: str,
     subtitle: str,
+    pills: list[str] | None = None,
 ) -> None:
+    pill_html = ""
+
+    if pills:
+        pill_html = "<div class='pill-row'>"
+        for pill in pills:
+            pill_html += f"<span class='pill'>{pill}</span>"
+        pill_html += "</div>"
+
     st.markdown(
         f"""
         <div class="hero-panel">
             <div class="main-title">{title}</div>
             <div class="main-subtitle">{subtitle}</div>
+            {pill_html}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_glass_card(
+    title: str,
+    body: str,
+) -> None:
+    st.markdown(
+        f"""
+        <div class="glass-card">
+            <h3>{title}</h3>
+            <p>{body}</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_metric_card(
+    label: str,
+    value: str,
+    note: str,
+) -> None:
+    st.markdown(
+        f"""
+        <div class="glass-card">
+            <div class="metric-label">{label}</div>
+            <div class="metric-value">{value}</div>
+            <div class="metric-note">{note}</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -215,13 +350,20 @@ def render_header(
 
 
 # ============================================================
-# SECTION 07 - DASHBOARD HOME
+# SECTION 07 - COMMAND CENTER HOME
 # ============================================================
 
-def render_dashboard_home() -> None:
+def render_command_center() -> None:
     render_header(
-        "AISP Baseball Analytics",
-        "Enterprise MLB intelligence, predictions, rosters, player analytics, and AI-assisted decision support.",
+        "AISP Command Center",
+        "Enterprise baseball intelligence platform for MLB data, player research, predictions, and AI-assisted sports analysis.",
+        [
+            "MLB Intelligence",
+            "Prediction Engine",
+            "AI Analyst",
+            "Warehouse",
+            "Render Live",
+        ],
     )
 
     health = api_get("/health", timeout=5)
@@ -235,78 +377,71 @@ def render_dashboard_home() -> None:
     c1, c2, c3, c4 = st.columns(4)
 
     with c1:
-        st.metric(
+        render_metric_card(
             "API Status",
             "ONLINE" if api_online else "OFFLINE",
+            "FastAPI backend connection",
         )
 
     with c2:
-        st.metric(
+        render_metric_card(
             "Database",
             "ONLINE" if database_online else "CHECK",
+            "SQLite warehouse status",
         )
 
     with c3:
-        st.metric(
+        render_metric_card(
             "Sport",
             "MLB",
+            "Baseball module active",
         )
 
     with c4:
-        st.metric(
-            "Platform Phase",
-            "3.11",
+        render_metric_card(
+            "Platform",
+            "Phase 4.00",
+            "AI aesthetic layer",
         )
 
     st.divider()
 
-    col1, col2, col3 = st.columns(3)
+    st.markdown("<div class='section-kicker'>Platform Modules</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-heading'>Enterprise Sports Intelligence</div>", unsafe_allow_html=True)
 
-    with col1:
-        st.markdown(
-            """
-            <div class="aisp-card">
-                <h3>MLB Database</h3>
-                <p>Teams, players, rosters, season stats, games, and warehouse storage.</p>
-            </div>
-            """,
-            unsafe_allow_html=True,
+    m1, m2, m3 = st.columns(3)
+
+    with m1:
+        render_glass_card(
+            "Player Intelligence",
+            "Search MLB players, inspect roster context, view profile fields, and prepare player-level predictions.",
         )
 
-    with col2:
-        st.markdown(
-            """
-            <div class="aisp-card">
-                <h3>Prediction Engine</h3>
-                <p>Hit probability, game prediction, player props, and simulation framework.</p>
-            </div>
-            """,
-            unsafe_allow_html=True,
+    with m2:
+        render_glass_card(
+            "Prediction Workbench",
+            "Review prediction endpoints and prepare model outputs for hits, home runs, game winners, and props.",
         )
 
-    with col3:
-        st.markdown(
-            """
-            <div class="aisp-card">
-                <h3>AI Assistant</h3>
-                <p>Ask baseball questions and route them into analytics and prediction logic.</p>
-            </div>
-            """,
-            unsafe_allow_html=True,
+    with m3:
+        render_glass_card(
+            "AI Analyst",
+            "Ask natural language baseball questions and route them through the database-aware AI chat system.",
         )
 
     st.divider()
 
-    st.subheader("Quick Actions")
+    st.markdown("<div class='section-kicker'>Quick Actions</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-heading'>System Controls</div>", unsafe_allow_html=True)
 
     q1, q2, q3 = st.columns(3)
 
     with q1:
-        if st.button("Check API Health", use_container_width=True):
+        if st.button("Run Health Check", use_container_width=True):
             st.json(api_get("/health"))
 
     with q2:
-        if st.button("View Routes", use_container_width=True):
+        if st.button("View API Routes", use_container_width=True):
             st.json(api_get("/system/routes"))
 
     with q3:
@@ -315,31 +450,48 @@ def render_dashboard_home() -> None:
 
 
 # ============================================================
-# SECTION 08 - PLAYERS WORKSPACE
+# SECTION 08 - PLAYERS PAGE
 # ============================================================
 
 def render_players_page() -> None:
     render_header(
-        "Players",
-        "Search active MLB players, inspect team context, and prepare player-level predictions.",
+        "Player Intelligence",
+        "Search every stored MLB player and prepare player cards, projections, and AI-generated analysis.",
+        ["Player Search", "Stats", "Props", "Profiles"],
     )
 
-    query = st.text_input(
-        "Search MLB Player",
-        value="Juan Soto",
-    )
+    left, right = st.columns([2, 1])
 
-    if st.button("Search Players", use_container_width=True):
-        data = api_get(
-            "/players/search",
-            params={"q": query},
+    with left:
+        st.subheader("Search Player Database")
+
+        query = st.text_input(
+            "Player Name",
+            value="Juan Soto",
         )
 
-        if data:
-            st.dataframe(
-                data,
-                use_container_width=True,
+        if st.button("Search Players", use_container_width=True):
+            data = api_get(
+                "/players/search",
+                params={"q": query},
             )
+
+            if data:
+                st.dataframe(
+                    data,
+                    use_container_width=True,
+                )
+
+    with right:
+        st.markdown(
+            """
+            <div class="ai-card">
+                <h3>AI Player Lens</h3>
+                <p>Use this workspace to identify players, inspect database results, and prepare future player cards with probability gauges.</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
     st.divider()
 
@@ -361,47 +513,51 @@ def render_players_page() -> None:
 
 
 # ============================================================
-# SECTION 09 - TEAMS WORKSPACE
+# SECTION 09 - TEAMS PAGE
 # ============================================================
 
 def render_teams_page() -> None:
     render_header(
-        "Teams",
-        "Explore MLB team records, roster data, divisions, and team identifiers.",
+        "Team Intelligence",
+        "Explore MLB teams, divisions, rosters, venues, and future strength ratings.",
+        ["Teams", "Rosters", "Divisions", "Strength Ratings"],
     )
 
-    if st.button("Load All Teams", use_container_width=True):
-        data = api_get("/teams")
+    col1, col2 = st.columns([1, 1])
 
-        if data:
-            st.dataframe(
-                data,
-                use_container_width=True,
-            )
+    with col1:
+        if st.button("Load All Teams", use_container_width=True):
+            data = api_get("/teams")
 
-    st.divider()
+            if data:
+                st.dataframe(
+                    data,
+                    use_container_width=True,
+                )
 
-    team_id = st.number_input(
-        "Team ID",
-        value=147,
-        step=1,
-    )
+    with col2:
+        team_id = st.number_input(
+            "Team ID",
+            value=147,
+            step=1,
+        )
 
-    if st.button("Load Team Detail", use_container_width=True):
-        data = api_get(f"/teams/{int(team_id)}")
+        if st.button("Load Team Detail", use_container_width=True):
+            data = api_get(f"/teams/{int(team_id)}")
 
-        if data:
-            st.json(data)
+            if data:
+                st.json(data)
 
 
 # ============================================================
-# SECTION 10 - GAMES WORKSPACE
+# SECTION 10 - GAMES PAGE
 # ============================================================
 
 def render_games_page() -> None:
     render_header(
-        "Games",
-        "View stored game records and prepare matchup prediction workflows.",
+        "Game Intelligence",
+        "Stored game records, matchup research, score context, and future win probability workflows.",
+        ["Games", "Matchups", "Scores", "Win Probability"],
     )
 
     limit = st.slider(
@@ -425,13 +581,14 @@ def render_games_page() -> None:
 
 
 # ============================================================
-# SECTION 11 - PREDICTIONS WORKSPACE
+# SECTION 11 - PREDICTIONS PAGE
 # ============================================================
 
 def render_predictions_page() -> None:
     render_header(
-        "Predictions",
-        "Review game predictions, player predictions, and future simulation outputs.",
+        "Prediction Workbench",
+        "Review prediction outputs, model confidence, player props, and future simulation engines.",
+        ["Hit Probability", "Home Runs", "Game Winner", "Monte Carlo"],
     )
 
     tab1, tab2, tab3 = st.tabs(
@@ -483,7 +640,8 @@ def render_predictions_page() -> None:
                 )
 
     with tab3:
-        st.subheader("Prediction Lab")
+        st.subheader("AI Prediction Lab")
+
         prediction_type = st.selectbox(
             "Prediction Type",
             [
@@ -499,83 +657,88 @@ def render_predictions_page() -> None:
             f"Selected model workspace: {prediction_type}"
         )
 
-
-# ============================================================
-# SECTION 12 - AI ASSISTANT WORKSPACE
-# ============================================================
-
-def render_ai_assistant_page() -> None:
-    render_header(
-        "AISP AI Assistant",
-        "Ask natural language baseball questions and route them into AISP analytics.",
-    )
-
-    message = st.text_area(
-        "Ask AISP",
-        value="Predict Juan Soto hit probability",
-        height=180,
-    )
-
-    if st.button("Ask AISP", use_container_width=True):
-        data = api_post(
-            "/chat",
-            payload={"message": message},
+        render_glass_card(
+            "Coming Next",
+            "This lab will become the control room for simulations, sportsbook-style projections, and AI explanations.",
         )
 
-        if data:
-            st.json(data)
 
-    st.divider()
+# ============================================================
+# SECTION 12 - AI ANALYST PAGE
+# ============================================================
 
-    st.caption("Example prompts")
-    st.code("Show me Juan Soto stats")
-    st.code("Predict Aaron Judge hit probability")
-    st.code("Show me Yankees roster")
-    st.code("Who are the OPS leaders?")
+def render_ai_analyst_page() -> None:
+    render_header(
+        "AISP AI Analyst",
+        "Ask baseball questions in natural language and receive structured database-aware responses.",
+        ["Natural Language", "Database Lookup", "Predictions", "Explanations"],
+    )
+
+    left, right = st.columns([2, 1])
+
+    with left:
+        message = st.text_area(
+            "Ask AISP",
+            value="Predict Juan Soto hit probability",
+            height=190,
+        )
+
+        if st.button("Ask AI Analyst", use_container_width=True):
+            data = api_post(
+                "/chat",
+                payload={"message": message},
+            )
+
+            if data:
+                st.json(data)
+
+    with right:
+        render_glass_card(
+            "Example Prompts",
+            "Try: Show me Juan Soto stats. Predict Aaron Judge hit probability. Show me Yankees roster. Who are the OPS leaders?",
+        )
 
 
 # ============================================================
-# SECTION 13 - ANALYTICS CENTER
+# SECTION 13 - ANALYTICS PAGE
 # ============================================================
 
 def render_analytics_page() -> None:
     render_header(
         "Analytics Center",
-        "A workspace for batting, pitching, Statcast, trends, and future charts.",
+        "Future command center for batting, pitching, fielding, Statcast, and leaderboard intelligence.",
+        ["Batting", "Pitching", "Fielding", "Statcast"],
     )
-
-    st.subheader("Analytics Modules")
 
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
-        st.metric("Batting", "Planned")
+        render_metric_card("Batting", "Planned", "Leaderboards and player cards")
 
     with col2:
-        st.metric("Pitching", "Planned")
+        render_metric_card("Pitching", "Planned", "ERA, WHIP, K-rate, projections")
 
     with col3:
-        st.metric("Fielding", "Planned")
+        render_metric_card("Fielding", "Planned", "Position and defensive metrics")
 
     with col4:
-        st.metric("Statcast", "Planned")
+        render_metric_card("Statcast", "Planned", "Exit velocity, barrels, xwOBA")
 
     st.warning(
-        "Phase 3.12 will add charts, player comparison tables, and leaderboard views."
+        "Phase 4.01 will add charts, player cards, comparison tables, and visual leaderboards."
     )
 
 
 # ============================================================
-# SECTION 14 - WAREHOUSE MONITOR
+# SECTION 14 - WAREHOUSE PAGE
 # ============================================================
 
 def render_warehouse_page() -> None:
     render_header(
         "Data Warehouse",
-        "Monitor the current state of the local MLB database and future warehouse jobs.",
+        "Monitor database health, sync readiness, table coverage, and future data quality scoring.",
+        ["Teams", "Players", "Stats", "Games", "Predictions"],
     )
-
-    st.subheader("Warehouse Status")
 
     info = api_get("/system/info")
 
@@ -584,19 +747,21 @@ def render_warehouse_page() -> None:
 
     st.divider()
 
-    st.info(
-        "Upcoming: row counts, sync timestamps, table health, data quality scores, and nightly job status."
+    render_glass_card(
+        "Warehouse Roadmap",
+        "Upcoming: row counts, sync timestamps, table health, data quality scores, and nightly ingestion job status.",
     )
 
 
 # ============================================================
-# SECTION 15 - SYSTEM HEALTH
+# SECTION 15 - SYSTEM HEALTH PAGE
 # ============================================================
 
 def render_system_health_page() -> None:
     render_header(
         "System Health",
-        "Render deployment health, API status, database checks, and route inventory.",
+        "Monitor Render deployment, API routes, database connectivity, and backend readiness.",
+        ["Render", "FastAPI", "Database", "Routes"],
     )
 
     col1, col2 = st.columns(2)
@@ -627,8 +792,8 @@ def render_system_health_page() -> None:
 # SECTION 16 - PAGE ROUTER
 # ============================================================
 
-if page == "Dashboard":
-    render_dashboard_home()
+if page == "Command Center":
+    render_command_center()
 
 elif page == "Players":
     render_players_page()
@@ -642,8 +807,8 @@ elif page == "Games":
 elif page == "Predictions":
     render_predictions_page()
 
-elif page == "AI Assistant":
-    render_ai_assistant_page()
+elif page == "AI Analyst":
+    render_ai_analyst_page()
 
 elif page == "Analytics":
     render_analytics_page()
@@ -661,8 +826,13 @@ elif page == "System Health":
 
 st.divider()
 
-st.caption(
-    "AISP Baseball Analytics Engine | Phase 3.11 Enterprise Dashboard Platform"
+st.markdown(
+    """
+    <div class="footer-note">
+        AISP Baseball Analytics Engine · Enterprise AI Sports Intelligence · Phase 4.00
+    </div>
+    """,
+    unsafe_allow_html=True,
 )
 
 
@@ -671,7 +841,7 @@ st.caption(
 # ============================================================
 
 """
-Phase 3.12
+Phase 4.01
 
 Player cards
 Team cards
@@ -680,16 +850,17 @@ Statcast visuals
 Prediction confidence meters
 Charts
 Filters
+AI response formatting
 
-Phase 3.13
+Phase 4.02
 
-Streamlit Cloud or Render dashboard deployment
+Frontend deployment on Render
 
-Phase 3.14
+Phase 4.03
 
-Dedicated React / Next.js frontend
+Dedicated React / Next.js web application
 
-Phase 4.00
+Phase 5.00
 
 Sportsbook Intelligence UI
 """
