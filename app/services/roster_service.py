@@ -846,3 +846,146 @@ class RosterService:
                 PlayerSeasonStat
             ).count(),
         }
+
+# ============================================================
+# SECTION 22 - STATCAST INGESTION PREPARATION
+# ============================================================
+
+    def sync_player_statcast_profile(
+        self,
+        player: Player,
+        start_date: str,
+        end_date: str,
+    ) -> dict:
+        """
+        Pull Baseball Savant Statcast data for a player.
+
+        Current phase:
+        Retrieval only.
+
+        Future phase:
+        Store inside dedicated Statcast tables.
+        """
+
+        result = {
+            "player_id": player.mlb_player_id,
+            "player_name": player.full_name,
+            "batter_events": 0,
+            "pitcher_events": 0,
+        }
+
+        try:
+            batter_data = (
+                self.client.get_statcast_batter(
+                    player_id=player.mlb_player_id,
+                    start_date=start_date,
+                    end_date=end_date,
+                )
+            )
+
+            result["batter_events"] = len(
+                batter_data.index
+            )
+
+        except Exception as exc:
+            self._record_error(
+                scope="statcast_batter",
+                identifier=player.mlb_player_id,
+                error=exc,
+            )
+
+        try:
+            pitcher_data = (
+                self.client.get_statcast_pitcher(
+                    player_id=player.mlb_player_id,
+                    start_date=start_date,
+                    end_date=end_date,
+                )
+            )
+
+            result["pitcher_events"] = len(
+                pitcher_data.index
+            )
+
+        except Exception as exc:
+            self._record_error(
+                scope="statcast_pitcher",
+                identifier=player.mlb_player_id,
+                error=exc,
+            )
+
+        return result
+
+# ============================================================
+# SECTION 23 - STATCAST SAMPLE TEST
+# ============================================================
+
+    def run_statcast_sample(
+        self,
+        start_date: str,
+        end_date: str,
+    ) -> dict:
+        """
+        Pull a small Statcast sample.
+
+        Useful for validating that
+        Baseball Savant is connected.
+        """
+
+        dataset = self.client.get_statcast_range(
+            start_date=start_date,
+            end_date=end_date,
+        )
+
+        return {
+            "rows": len(dataset.index),
+            "columns": len(dataset.columns),
+            "column_names": list(dataset.columns),
+        }
+
+# ============================================================
+# SECTION 24 - ENTERPRISE DATA SOURCE STATUS
+# ============================================================
+
+    def build_data_source_status(
+        self,
+    ) -> dict:
+        return {
+            "mlb_stats_api": True,
+            "baseball_savant": True,
+            "fangraphs": False,
+            "retrosheet": False,
+            "lahman": False,
+            "injury_feed": False,
+            "weather_feed": False,
+        }
+
+# ============================================================
+# SECTION 25 - WAREHOUSE EXPANSION ROADMAP
+# ============================================================
+
+"""
+Phase 4.08
+Statcast database tables
+
+Phase 4.09
+Statcast ingestion service
+
+Phase 4.10
+Retrosheet integration
+
+Phase 4.11
+Lahman historical database
+
+Phase 4.12
+Injury warehouse
+
+Phase 4.13
+Weather intelligence
+
+Phase 4.14
+Sportsbook odds ingestion
+
+Phase 5.00
+Enterprise baseball intelligence platform
+"""
