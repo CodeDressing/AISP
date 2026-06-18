@@ -707,8 +707,11 @@ def chat(
 
 
 # ============================================================
-# SECTION 15 - SYSTEM INFORMATION ROUTES
+# SECTION 15 - SYSTEM INFORMATION, ROUTES & DATA SOURCE ROUTES
 # ============================================================
+
+from app.services.roster_service import RosterService
+
 
 @app.get("/system/info")
 def system_info() -> dict:
@@ -720,13 +723,15 @@ def system_info() -> dict:
         "prediction_engine": settings.prediction_engine_enabled,
         "ai_chat": settings.ai_chat_enabled,
         "database": check_database_connection(),
+        "platform": "AISP Baseball Analytics Engine",
+        "phase": "4.11",
     }
 
 
 @app.get("/system/routes")
 def system_routes() -> dict:
     return {
-        "routes": [
+        "public_routes": [
             "/",
             "/health",
             "/health/database",
@@ -741,9 +746,97 @@ def system_routes() -> dict:
             "/system/info",
             "/system/routes",
             "/docs",
-        ]
+        ],
+        "admin_routes": [
+            "/admin/sync/mlb",
+            "/admin/database/summary",
+            "/admin/system/status",
+            "/admin/warehouse/metrics",
+            "/admin/platform/readiness",
+            "/admin/statcast/sample",
+            "/admin/statcast/player/{player_id}",
+            "/admin/data-sources/status",
+        ],
+        "data_sources": [
+            "MLB Stats API",
+            "Baseball Savant / Statcast",
+        ],
     }
 
+
+@app.get("/admin/data-sources/status")
+def admin_data_sources_status(
+    db: Session = Depends(get_db),
+) -> dict:
+    service = RosterService(
+        db=db,
+    )
+
+    return service.build_data_source_status()
+
+
+@app.get("/admin/statcast/sample")
+def admin_statcast_sample(
+    start_date: str,
+    end_date: str,
+    db: Session = Depends(get_db),
+) -> dict:
+    service = RosterService(
+        db=db,
+    )
+
+    result = service.run_statcast_sample(
+        start_date=start_date,
+        end_date=end_date,
+    )
+
+    return {
+        "status": "success",
+        "source": "baseball_savant_statcast",
+        "start_date": start_date,
+        "end_date": end_date,
+        "result": result,
+    }
+
+
+@app.get("/admin/statcast/player/{player_id}")
+def admin_player_statcast_profile(
+    player_id: int,
+    start_date: str,
+    end_date: str,
+    db: Session = Depends(get_db),
+) -> dict:
+    player = (
+        db.query(Player)
+        .filter(Player.mlb_player_id == player_id)
+        .first()
+    )
+
+    if not player:
+        raise HTTPException(
+            status_code=404,
+            detail="player_not_found",
+        )
+
+    service = RosterService(
+        db=db,
+    )
+
+    result = service.sync_player_statcast_profile(
+        player=player,
+        start_date=start_date,
+        end_date=end_date,
+    )
+
+    return {
+        "status": "success",
+        "source": "baseball_savant_statcast",
+        "player_id": player_id,
+        "player_name": player.full_name,
+        "start_date": start_date,
+        "end_date": end_date,
+        "result": result,
+    }
 # ============================================================
 # SECTION 16 - ENTERPRISE ADMIN & WAREHOUSE ROUTES
 # ============================================================
@@ -865,6 +958,99 @@ def platform_readiness(
             else "in_progress"
         ),
     }
+
+# ============================================================
+# SECTION 16A - STATCAST / BASEBALL SAVANT TEST ROUTES
+# ============================================================
+
+@app.get("/admin/statcast/sample")
+def admin_statcast_sample(
+    start_date: str,
+    end_date: str,
+    db: Session = Depends(get_db),
+) -> dict:
+    """
+    Pull a live Baseball Savant / Statcast sample.
+
+    Example:
+    /admin/statcast/sample?start_date=2025-04-01&end_date=2025-04-02
+    """
+
+    service = RosterService(
+        db=db,
+    )
+
+    result = service.run_statcast_sample(
+        start_date=start_date,
+        end_date=end_date,
+    )
+
+    return {
+        "status": "success",
+        "source": "baseball_savant_statcast",
+        "start_date": start_date,
+        "end_date": end_date,
+        "result": result,
+    }
+
+
+@app.get("/admin/statcast/player/{player_id}")
+def admin_player_statcast_profile(
+    player_id: int,
+    start_date: str,
+    end_date: str,
+    db: Session = Depends(get_db),
+) -> dict:
+    """
+    Pull Baseball Savant / Statcast batter and pitcher event counts
+    for one player.
+    """
+
+    player = (
+        db.query(Player)
+        .filter(Player.mlb_player_id == player_id)
+        .first()
+    )
+
+    if not player:
+        raise HTTPException(
+            status_code=404,
+            detail="player_not_found",
+        )
+
+    service = RosterService(
+        db=db,
+    )
+
+    result = service.sync_player_statcast_profile(
+        player=player,
+        start_date=start_date,
+        end_date=end_date,
+    )
+
+    return {
+        "status": "success",
+        "source": "baseball_savant_statcast",
+        "player_id": player_id,
+        "start_date": start_date,
+        "end_date": end_date,
+        "result": result,
+    }
+
+
+@app.get("/admin/data-sources/status")
+def admin_data_sources_status(
+    db: Session = Depends(get_db),
+) -> dict:
+    """
+    Show which data sources are currently connected or planned.
+    """
+
+    service = RosterService(
+        db=db,
+    )
+
+    return service.build_data_source_status()
 
 # ============================================================
 # SECTION 17 - FUTURE API ROADMAP
