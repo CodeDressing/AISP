@@ -238,3 +238,510 @@ class MLBStatsAPIClient:
             for player in players
             if lowered_name in player.get("fullName", "").lower()
         ]
+
+# ============================================================
+# SECTION 13 - ALL ACTIVE MLB PLAYERS
+# ============================================================
+
+    def get_all_active_players(
+        self,
+        season: int = 2026,
+    ) -> list[dict[str, Any]]:
+        payload = self._get(
+            "sports/1/players",
+            params={
+                "season": season,
+            },
+        )
+
+        return payload.get(
+            "people",
+            [],
+        )
+
+
+# ============================================================
+# SECTION 14 - PLAYER GAME LOG ENDPOINTS
+# ============================================================
+
+    def get_player_game_log(
+        self,
+        player_id: int,
+        season: int = 2026,
+        group: str = "hitting",
+    ) -> dict[str, Any]:
+        return self._get(
+            f"people/{player_id}/stats",
+            params={
+                "stats": "gameLog",
+                "season": season,
+                "group": group,
+            },
+        )
+
+
+# ============================================================
+# SECTION 15 - PLAYER CAREER STATS ENDPOINTS
+# ============================================================
+
+    def get_player_career_stats(
+        self,
+        player_id: int,
+        group: str = "hitting",
+    ) -> dict[str, Any]:
+        return self._get(
+            f"people/{player_id}/stats",
+            params={
+                "stats": "career",
+                "group": group,
+            },
+        )
+
+
+# ============================================================
+# SECTION 16 - PLAYER YEAR-BY-YEAR STATS ENDPOINTS
+# ============================================================
+
+    def get_player_year_by_year_stats(
+        self,
+        player_id: int,
+        group: str = "hitting",
+    ) -> dict[str, Any]:
+        return self._get(
+            f"people/{player_id}/stats",
+            params={
+                "stats": "yearByYear",
+                "group": group,
+            },
+        )
+
+
+# ============================================================
+# SECTION 17 - PLAYER SPLITS ENDPOINTS
+# ============================================================
+
+    def get_player_splits(
+        self,
+        player_id: int,
+        season: int = 2026,
+        group: str = "hitting",
+        split: str = "homeAndAway",
+    ) -> dict[str, Any]:
+        return self._get(
+            f"people/{player_id}/stats",
+            params={
+                "stats": split,
+                "season": season,
+                "group": group,
+            },
+        )
+
+
+# ============================================================
+# SECTION 18 - COMPLETE PLAYER PROFILE BUNDLE
+# ============================================================
+
+    def get_complete_player_profile(
+        self,
+        player_id: int,
+        season: int = 2026,
+    ) -> dict[str, Any]:
+        return {
+            "player": self.get_player(
+                player_id=player_id,
+            ),
+            "season_hitting": self.get_player_season_stats(
+                player_id=player_id,
+                season=season,
+                group="hitting",
+            ),
+            "season_pitching": self.get_player_season_stats(
+                player_id=player_id,
+                season=season,
+                group="pitching",
+            ),
+            "season_fielding": self.get_player_season_stats(
+                player_id=player_id,
+                season=season,
+                group="fielding",
+            ),
+            "career_hitting": self.get_player_career_stats(
+                player_id=player_id,
+                group="hitting",
+            ),
+            "career_pitching": self.get_player_career_stats(
+                player_id=player_id,
+                group="pitching",
+            ),
+            "career_fielding": self.get_player_career_stats(
+                player_id=player_id,
+                group="fielding",
+            ),
+            "game_log_hitting": self.get_player_game_log(
+                player_id=player_id,
+                season=season,
+                group="hitting",
+            ),
+            "game_log_pitching": self.get_player_game_log(
+                player_id=player_id,
+                season=season,
+                group="pitching",
+            ),
+        }
+
+
+# ============================================================
+# SECTION 19 - TEAM ROSTER COLLECTION HELPERS
+# ============================================================
+
+    def get_all_team_rosters(
+        self,
+        season: int = 2026,
+        roster_type: str = "active",
+    ) -> list[dict[str, Any]]:
+        teams = self.get_teams(
+            season=season,
+        )
+
+        all_rosters: list[dict[str, Any]] = []
+
+        for team in teams:
+            team_id = team.get("id")
+
+            if not team_id:
+                continue
+
+            try:
+                roster = self.get_roster(
+                    team_id=team_id,
+                    season=season,
+                    roster_type=roster_type,
+                )
+
+                all_rosters.append(
+                    {
+                        "team": team,
+                        "roster_type": roster_type,
+                        "players": roster,
+                    }
+                )
+
+            except Exception:
+                continue
+
+        return all_rosters
+
+
+# ============================================================
+# SECTION 20 - TEAM MULTI-ROSTER COLLECTION HELPERS
+# ============================================================
+
+    def get_all_roster_types_for_team(
+        self,
+        team_id: int,
+        season: int = 2026,
+    ) -> dict[str, Any]:
+        roster_types = [
+            "active",
+            "40Man",
+            "fullSeason",
+            "depthChart",
+            "nonRosterInvitees",
+        ]
+
+        result: dict[str, Any] = {
+            "team_id": team_id,
+            "season": season,
+            "rosters": {},
+        }
+
+        for roster_type in roster_types:
+            try:
+                result["rosters"][roster_type] = self.get_roster(
+                    team_id=team_id,
+                    season=season,
+                    roster_type=roster_type,
+                )
+
+            except Exception:
+                result["rosters"][roster_type] = []
+
+        return result
+
+
+# ============================================================
+# SECTION 21 - TEAM DEPTH CHART ENDPOINTS
+# ============================================================
+
+    def get_team_depth_chart(
+        self,
+        team_id: int,
+        season: int = 2026,
+    ) -> dict[str, Any]:
+        return self._get(
+            f"teams/{team_id}",
+            params={
+                "season": season,
+                "hydrate": "depthChart",
+            },
+        )
+
+
+# ============================================================
+# SECTION 22 - TEAM FULL PROFILE ENDPOINTS
+# ============================================================
+
+    def get_team_full_profile(
+        self,
+        team_id: int,
+        season: int = 2026,
+    ) -> dict[str, Any]:
+        return self._get(
+            f"teams/{team_id}",
+            params={
+                "season": season,
+                "hydrate": (
+                    "venue,division,league,sport,leagueRecord,"
+                    "records,probablePitcher,stats"
+                ),
+            },
+        )
+
+
+# ============================================================
+# SECTION 23 - SCHEDULE GAME COLLECTION HELPERS
+# ============================================================
+
+    def get_schedule_games(
+        self,
+        season: int = 2026,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        team_id: int | None = None,
+    ) -> list[dict[str, Any]]:
+        payload = self.get_schedule(
+            season=season,
+            start_date=start_date,
+            end_date=end_date,
+            team_id=team_id,
+        )
+
+        games: list[dict[str, Any]] = []
+
+        for date_block in payload.get("dates", []):
+            for game in date_block.get("games", []):
+                games.append(game)
+
+        return games
+
+
+# ============================================================
+# SECTION 24 - GAME BOX SCORE ENDPOINTS
+# ============================================================
+
+    def get_game_boxscore(
+        self,
+        game_pk: int,
+    ) -> dict[str, Any]:
+        return self._get(
+            f"game/{game_pk}/boxscore",
+        )
+
+
+# ============================================================
+# SECTION 25 - GAME LINESCORE ENDPOINTS
+# ============================================================
+
+    def get_game_linescore(
+        self,
+        game_pk: int,
+    ) -> dict[str, Any]:
+        return self._get(
+            f"game/{game_pk}/linescore",
+        )
+
+
+# ============================================================
+# SECTION 26 - GAME CONTENT ENDPOINTS
+# ============================================================
+
+    def get_game_content(
+        self,
+        game_pk: int,
+    ) -> dict[str, Any]:
+        return self._get(
+            f"game/{game_pk}/content",
+        )
+
+
+# ============================================================
+# SECTION 27 - DIVISIONS ENDPOINTS
+# ============================================================
+
+    def get_divisions(
+        self,
+        sport_id: int = 1,
+    ) -> list[dict[str, Any]]:
+        payload = self._get(
+            "divisions",
+            params={
+                "sportId": sport_id,
+            },
+        )
+
+        return payload.get(
+            "divisions",
+            [],
+        )
+
+
+# ============================================================
+# SECTION 28 - LEAGUES ENDPOINTS
+# ============================================================
+
+    def get_leagues(
+        self,
+        sport_id: int = 1,
+    ) -> list[dict[str, Any]]:
+        payload = self._get(
+            "league",
+            params={
+                "sportId": sport_id,
+            },
+        )
+
+        return payload.get(
+            "leagues",
+            [],
+        )
+
+
+# ============================================================
+# SECTION 29 - VENUES ENDPOINTS
+# ============================================================
+
+    def get_venues(
+        self,
+    ) -> list[dict[str, Any]]:
+        payload = self._get(
+            "venues",
+        )
+
+        return payload.get(
+            "venues",
+            [],
+        )
+
+
+# ============================================================
+# SECTION 30 - AWARDS ENDPOINTS
+# ============================================================
+
+    def get_awards(
+        self,
+        award_id: str | None = None,
+        season: int | None = None,
+    ) -> dict[str, Any]:
+        params: dict[str, Any] = {}
+
+        if award_id:
+            params["awardId"] = award_id
+
+        if season:
+            params["season"] = season
+
+        return self._get(
+            "awards",
+            params=params,
+        )
+
+
+# ============================================================
+# SECTION 31 - PLAYER AWARDS ENDPOINTS
+# ============================================================
+
+    def get_player_awards(
+        self,
+        player_id: int,
+    ) -> dict[str, Any]:
+        return self._get(
+            f"people/{player_id}/awards",
+        )
+
+
+# ============================================================
+# SECTION 32 - DRAFT ENDPOINTS
+# ============================================================
+
+    def get_draft(
+        self,
+        year: int,
+    ) -> dict[str, Any]:
+        return self._get(
+            f"draft/{year}",
+        )
+
+
+# ============================================================
+# SECTION 33 - PROSPECTS ENDPOINTS
+# ============================================================
+
+    def get_prospects(
+        self,
+        sport_id: int = 1,
+    ) -> dict[str, Any]:
+        return self._get(
+            "prospects",
+            params={
+                "sportId": sport_id,
+            },
+        )
+
+
+# ============================================================
+# SECTION 34 - PLAYER SEARCH BY ID LIST
+# ============================================================
+
+    def get_players_by_ids(
+        self,
+        player_ids: list[int],
+    ) -> list[dict[str, Any]]:
+        players: list[dict[str, Any]] = []
+
+        for player_id in player_ids:
+            try:
+                player = self.get_player(
+                    player_id=player_id,
+                )
+
+                if player:
+                    players.append(player)
+
+            except Exception:
+                continue
+
+        return players
+
+
+# ============================================================
+# SECTION 35 - FUTURE DATA SOURCE ROADMAP
+# ============================================================
+
+"""
+Future MLBStatsAPIClient Expansion
+
+1. Injury endpoint discovery
+2. Lineup endpoint discovery
+3. Probable pitcher hydration
+4. Weather source integration
+5. Baseball Savant CSV ingestion
+6. FanGraphs leaderboards
+7. Lahman historical database
+8. Retrosheet play-by-play
+9. Minor league player sync
+10. Prospect rankings
+11. Park factor ingestion
+12. Betting odds provider integration
+13. DFS salary provider integration
+14. Daily scheduled data refresh
+"""
