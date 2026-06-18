@@ -707,9 +707,10 @@ def chat(
 
 
 # ============================================================
-# SECTION 15 - SYSTEM INFORMATION, ROUTES & DATA SOURCE ROUTES
+# SECTION 15 - SYSTEM INFORMATION & ROUTE DISCOVERY
 # ============================================================
 
+from app.database.models import StatcastEvent
 from app.services.roster_service import RosterService
 
 
@@ -724,7 +725,7 @@ def system_info() -> dict:
         "ai_chat": settings.ai_chat_enabled,
         "database": check_database_connection(),
         "platform": "AISP Baseball Analytics Engine",
-        "phase": "4.11",
+        "phase": "4.15",
     }
 
 
@@ -749,6 +750,7 @@ def system_routes() -> dict:
         ],
         "admin_routes": [
             "/admin/sync/mlb",
+            "/admin/sync/statcast/range",
             "/admin/database/summary",
             "/admin/system/status",
             "/admin/warehouse/metrics",
@@ -764,16 +766,134 @@ def system_routes() -> dict:
     }
 
 
-@app.get("/admin/data-sources/status")
-def admin_data_sources_status(
+# ============================================================
+# SECTION 16 - ENTERPRISE ADMIN & WAREHOUSE ROUTES
+# ============================================================
+
+@app.post("/admin/sync/mlb")
+def admin_sync_mlb_database(
+    season: int = 2026,
     db: Session = Depends(get_db),
 ) -> dict:
-    service = RosterService(
-        db=db,
+    service = RosterService(db=db)
+
+    result = service.run_enterprise_warehouse_sync(
+        season=season,
     )
 
-    return service.build_data_source_status()
+    return {
+        "status": "success",
+        "operation": "enterprise_mlb_sync",
+        "season": season,
+        "result": result,
+    }
 
+
+@app.post("/admin/sync/statcast/range")
+def admin_sync_statcast_range(
+    start_date: str,
+    end_date: str,
+    season: int = 2026,
+    db: Session = Depends(get_db),
+) -> dict:
+    service = RosterService(db=db)
+
+    result = service.sync_statcast_range_to_database(
+        start_date=start_date,
+        end_date=end_date,
+        season=season,
+    )
+
+    return {
+        "status": "success",
+        "operation": "statcast_database_sync",
+        "source": "baseball_savant_statcast",
+        "result": result,
+    }
+
+
+@app.get("/admin/database/summary")
+def admin_database_summary(
+    db: Session = Depends(get_db),
+) -> dict:
+    return {
+        "teams": db.query(Team).count(),
+        "players": db.query(Player).count(),
+        "games": db.query(Game).count(),
+        "game_predictions": db.query(GamePrediction).count(),
+        "player_predictions": db.query(PlayerPrediction).count(),
+        "statcast_events": db.query(StatcastEvent).count(),
+        "database_connected": check_database_connection(),
+    }
+
+
+@app.get("/admin/system/status")
+def admin_system_status(
+    db: Session = Depends(get_db),
+) -> dict:
+    return {
+        "app_name": settings.app_name,
+        "version": settings.app_version,
+        "environment": settings.environment,
+        "database_connected": check_database_connection(),
+        "prediction_engine": settings.prediction_engine_enabled,
+        "ai_chat": settings.ai_chat_enabled,
+        "teams_loaded": db.query(Team).count(),
+        "players_loaded": db.query(Player).count(),
+        "games_loaded": db.query(Game).count(),
+        "statcast_events_loaded": db.query(StatcastEvent).count(),
+    }
+
+
+@app.get("/admin/warehouse/metrics")
+def warehouse_metrics(
+    db: Session = Depends(get_db),
+) -> dict:
+    return {
+        "total_teams": db.query(Team).count(),
+        "total_players": db.query(Player).count(),
+        "total_games": db.query(Game).count(),
+        "total_game_predictions": db.query(GamePrediction).count(),
+        "total_player_predictions": db.query(PlayerPrediction).count(),
+        "total_statcast_events": db.query(StatcastEvent).count(),
+    }
+
+
+@app.get("/admin/platform/readiness")
+def platform_readiness(
+    db: Session = Depends(get_db),
+) -> dict:
+    score = 0
+
+    if check_database_connection():
+        score += 20
+
+    if db.query(Team).count() > 0:
+        score += 20
+
+    if db.query(Player).count() > 0:
+        score += 20
+
+    if db.query(StatcastEvent).count() > 0:
+        score += 20
+
+    if settings.ai_chat_enabled:
+        score += 20
+
+    return {
+        "readiness_score": score,
+        "max_score": 100,
+        "status": (
+            "enterprise_ready"
+            if score >= 80
+            else "in_progress"
+        ),
+    }
+
+
+# ============================================================
+# SECTION 17 - BASEBALL SAVANT / STATCAST ROUTES
+# ============================================================
 
 @app.get("/admin/statcast/sample")
 def admin_statcast_sample(
@@ -781,9 +901,7 @@ def admin_statcast_sample(
     end_date: str,
     db: Session = Depends(get_db),
 ) -> dict:
-    service = RosterService(
-        db=db,
-    )
+    service = RosterService(db=db)
 
     result = service.run_statcast_sample(
         start_date=start_date,
@@ -818,9 +936,7 @@ def admin_player_statcast_profile(
             detail="player_not_found",
         )
 
-    service = RosterService(
-        db=db,
-    )
+    service = RosterService(db=db)
 
     result = service.sync_player_statcast_profile(
         player=player,
@@ -837,223 +953,19 @@ def admin_player_statcast_profile(
         "end_date": end_date,
         "result": result,
     }
-# ============================================================
-# SECTION 16 - ENTERPRISE ADMIN & WAREHOUSE ROUTES
-# ============================================================
-
-from app.services.roster_service import RosterService
-
-
-@app.post("/admin/sync/mlb")
-def admin_sync_mlb_database(
-    season: int = 2026,
-    db: Session = Depends(get_db),
-) -> dict:
-    """
-    Enterprise warehouse synchronization.
-    Pulls teams, rosters, players, and statistics
-    from configured MLB data providers.
-    """
-
-    service = RosterService(
-        db=db,
-    )
-
-    result = service.run_enterprise_warehouse_sync(
-        season=season,
-    )
-
-    return {
-        "status": "success",
-        "operation": "enterprise_sync",
-        "season": season,
-        "result": result,
-    }
-
-
-@app.get("/admin/database/summary")
-def admin_database_summary(
-    db: Session = Depends(get_db),
-) -> dict:
-    """
-    High-level warehouse summary.
-    """
-
-    return {
-        "teams": db.query(Team).count(),
-        "players": db.query(Player).count(),
-        "games": db.query(Game).count(),
-        "game_predictions": db.query(GamePrediction).count(),
-        "player_predictions": db.query(PlayerPrediction).count(),
-        "database_connected": check_database_connection(),
-    }
-
-
-@app.get("/admin/system/status")
-def admin_system_status(
-    db: Session = Depends(get_db),
-) -> dict:
-    """
-    Enterprise platform status endpoint.
-    """
-
-    return {
-        "app_name": settings.app_name,
-        "version": settings.app_version,
-        "environment": settings.environment,
-        "database_connected": check_database_connection(),
-        "prediction_engine": settings.prediction_engine_enabled,
-        "ai_chat": settings.ai_chat_enabled,
-        "teams_loaded": db.query(Team).count(),
-        "players_loaded": db.query(Player).count(),
-        "games_loaded": db.query(Game).count(),
-    }
-
-
-@app.get("/admin/warehouse/metrics")
-def warehouse_metrics(
-    db: Session = Depends(get_db),
-) -> dict:
-    """
-    Core warehouse metrics.
-    """
-
-    return {
-        "total_teams": db.query(Team).count(),
-        "total_players": db.query(Player).count(),
-        "total_games": db.query(Game).count(),
-        "total_game_predictions": db.query(GamePrediction).count(),
-        "total_player_predictions": db.query(PlayerPrediction).count(),
-    }
-
-
-@app.get("/admin/platform/readiness")
-def platform_readiness(
-    db: Session = Depends(get_db),
-) -> dict:
-    """
-    Enterprise readiness scoring.
-    """
-
-    score = 0
-
-    if check_database_connection():
-        score += 25
-
-    if db.query(Team).count() > 0:
-        score += 25
-
-    if db.query(Player).count() > 0:
-        score += 25
-
-    if settings.ai_chat_enabled:
-        score += 25
-
-    return {
-        "readiness_score": score,
-        "max_score": 100,
-        "status": (
-            "enterprise_ready"
-            if score >= 75
-            else "in_progress"
-        ),
-    }
-
-# ============================================================
-# SECTION 16A - STATCAST / BASEBALL SAVANT TEST ROUTES
-# ============================================================
-
-@app.get("/admin/statcast/sample")
-def admin_statcast_sample(
-    start_date: str,
-    end_date: str,
-    db: Session = Depends(get_db),
-) -> dict:
-    """
-    Pull a live Baseball Savant / Statcast sample.
-
-    Example:
-    /admin/statcast/sample?start_date=2025-04-01&end_date=2025-04-02
-    """
-
-    service = RosterService(
-        db=db,
-    )
-
-    result = service.run_statcast_sample(
-        start_date=start_date,
-        end_date=end_date,
-    )
-
-    return {
-        "status": "success",
-        "source": "baseball_savant_statcast",
-        "start_date": start_date,
-        "end_date": end_date,
-        "result": result,
-    }
-
-
-@app.get("/admin/statcast/player/{player_id}")
-def admin_player_statcast_profile(
-    player_id: int,
-    start_date: str,
-    end_date: str,
-    db: Session = Depends(get_db),
-) -> dict:
-    """
-    Pull Baseball Savant / Statcast batter and pitcher event counts
-    for one player.
-    """
-
-    player = (
-        db.query(Player)
-        .filter(Player.mlb_player_id == player_id)
-        .first()
-    )
-
-    if not player:
-        raise HTTPException(
-            status_code=404,
-            detail="player_not_found",
-        )
-
-    service = RosterService(
-        db=db,
-    )
-
-    result = service.sync_player_statcast_profile(
-        player=player,
-        start_date=start_date,
-        end_date=end_date,
-    )
-
-    return {
-        "status": "success",
-        "source": "baseball_savant_statcast",
-        "player_id": player_id,
-        "start_date": start_date,
-        "end_date": end_date,
-        "result": result,
-    }
 
 
 @app.get("/admin/data-sources/status")
 def admin_data_sources_status(
     db: Session = Depends(get_db),
 ) -> dict:
-    """
-    Show which data sources are currently connected or planned.
-    """
-
-    service = RosterService(
-        db=db,
-    )
+    service = RosterService(db=db)
 
     return service.build_data_source_status()
 
+
 # ============================================================
-# SECTION 17 - FUTURE API ROADMAP
+# SECTION 18 - FUTURE API ROADMAP
 # ============================================================
 
 """
@@ -1072,6 +984,7 @@ Future Endpoints
 /warehouse
 /data-quality
 /admin/sync/mlb
+/admin/sync/statcast/range
 /admin/database/summary
 /admin/system/status
 /admin/warehouse/metrics
