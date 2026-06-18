@@ -725,7 +725,12 @@ def system_info() -> dict:
         "ai_chat": settings.ai_chat_enabled,
         "database": check_database_connection(),
         "platform": "AISP Baseball Analytics Engine",
-        "phase": "4.15",
+        "phase": "4.16",
+        "active_sport": "MLB",
+        "primary_data_sources": [
+            "MLB Stats API",
+            "Baseball Savant / Statcast",
+        ],
     }
 
 
@@ -749,6 +754,7 @@ def system_routes() -> dict:
             "/docs",
         ],
         "admin_routes": [
+            "/admin/sync/teams",
             "/admin/sync/mlb",
             "/admin/sync/statcast/range",
             "/admin/database/summary",
@@ -759,12 +765,31 @@ def system_routes() -> dict:
             "/admin/statcast/player/{player_id}",
             "/admin/data-sources/status",
         ],
+        "safe_first_sync_order": [
+            "1. POST /admin/sync/teams",
+            "2. GET /teams",
+            "3. GET /admin/database/summary",
+            "4. POST /admin/sync/mlb",
+            "5. POST /admin/sync/statcast/range",
+        ],
         "data_sources": [
-            "MLB Stats API",
-            "Baseball Savant / Statcast",
+            {
+                "name": "MLB Stats API",
+                "status": "active",
+                "purpose": "Teams, rosters, players, games, schedules, stats",
+            },
+            {
+                "name": "Baseball Savant / Statcast",
+                "status": "active_partial",
+                "purpose": "Pitch-level, batted-ball, expected-stat, and advanced tracking data",
+            },
+        ],
+        "notes": [
+            "Use /admin/sync/teams before the full MLB warehouse sync.",
+            "Use small Statcast date ranges first before larger backfills.",
+            "Full automation can be added after manual sync endpoints are stable.",
         ],
     }
-
 # ============================================================
 # SECTION 16A - TEAMS ONLY SYNC
 # ============================================================
