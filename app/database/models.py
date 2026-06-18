@@ -700,9 +700,212 @@ class DataQualityCheck(Base):
     message = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+# ============================================================
+# SECTION 25 - MODEL FEATURE STORE
+# ============================================================
+
+class ModelFeatureStore(Base):
+    __tablename__ = "model_feature_store"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    sport = Column(String, index=True, nullable=False)
+    league = Column(String, index=True, nullable=False)
+    season = Column(Integer, index=True, nullable=True)
+
+    subject_type = Column(String, index=True, nullable=False)
+    subject_id = Column(Integer, index=True, nullable=True)
+    subject_name = Column(String, nullable=True)
+
+    feature_set_name = Column(String, index=True, nullable=False)
+    feature_version = Column(String, index=True, nullable=True)
+
+    features_json = Column(Text, nullable=False)
+    source_json = Column(Text, nullable=True)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
 
 # ============================================================
-# SECTION 25 - DATABASE ROADMAP
+# SECTION 26 - ML MODEL REGISTRY
+# ============================================================
+
+class MLModelRegistry(Base):
+    __tablename__ = "ml_model_registry"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    model_name = Column(String, index=True, nullable=False)
+    model_version = Column(String, index=True, nullable=False)
+    model_family = Column(String, index=True, nullable=True)
+
+    sport = Column(String, index=True, nullable=False)
+    league = Column(String, index=True, nullable=False)
+    prediction_market = Column(String, index=True, nullable=True)
+
+    framework = Column(String, nullable=True)
+    algorithm = Column(String, nullable=True)
+
+    training_start_date = Column(String, nullable=True)
+    training_end_date = Column(String, nullable=True)
+
+    status = Column(String, index=True, nullable=True)
+    artifact_path = Column(String, nullable=True)
+
+    metrics_json = Column(Text, nullable=True)
+    config_json = Column(Text, nullable=True)
+    notes = Column(Text, nullable=True)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("model_name", "model_version", name="uq_model_registry_name_version"),
+    )
+
+
+# ============================================================
+# SECTION 27 - MODEL TRAINING RUN
+# ============================================================
+
+class ModelTrainingRun(Base):
+    __tablename__ = "model_training_runs"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    model_name = Column(String, index=True, nullable=False)
+    model_version = Column(String, index=True, nullable=True)
+
+    sport = Column(String, index=True, nullable=False)
+    league = Column(String, index=True, nullable=False)
+    prediction_market = Column(String, index=True, nullable=True)
+
+    dataset_name = Column(String, nullable=True)
+    feature_set_name = Column(String, nullable=True)
+
+    train_rows = Column(Integer, nullable=True)
+    validation_rows = Column(Integer, nullable=True)
+    test_rows = Column(Integer, nullable=True)
+
+    accuracy = Column(Float, nullable=True)
+    precision = Column(Float, nullable=True)
+    recall = Column(Float, nullable=True)
+    f1_score = Column(Float, nullable=True)
+    roc_auc = Column(Float, nullable=True)
+    log_loss = Column(Float, nullable=True)
+    mean_absolute_error = Column(Float, nullable=True)
+
+    status = Column(String, index=True, nullable=True)
+    error_message = Column(Text, nullable=True)
+
+    hyperparameters_json = Column(Text, nullable=True)
+    metrics_json = Column(Text, nullable=True)
+
+    started_at = Column(DateTime(timezone=True), nullable=True)
+    finished_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ============================================================
+# SECTION 28 - NEURAL NETWORK EXPERIMENT
+# ============================================================
+
+class NeuralNetworkExperiment(Base):
+    __tablename__ = "neural_network_experiments"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    experiment_name = Column(String, index=True, nullable=False)
+    architecture_type = Column(String, index=True, nullable=True)
+
+    sport = Column(String, index=True, nullable=False)
+    league = Column(String, index=True, nullable=False)
+    prediction_market = Column(String, index=True, nullable=True)
+
+    input_features = Column(Integer, nullable=True)
+    hidden_layers = Column(Integer, nullable=True)
+    total_parameters = Column(Integer, nullable=True)
+
+    optimizer = Column(String, nullable=True)
+    loss_function = Column(String, nullable=True)
+    activation_function = Column(String, nullable=True)
+
+    epochs = Column(Integer, nullable=True)
+    batch_size = Column(Integer, nullable=True)
+    learning_rate = Column(Float, nullable=True)
+
+    validation_score = Column(Float, nullable=True)
+    test_score = Column(Float, nullable=True)
+
+    architecture_json = Column(Text, nullable=True)
+    results_json = Column(Text, nullable=True)
+
+    status = Column(String, index=True, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ============================================================
+# SECTION 29 - SIMULATION RUN
+# ============================================================
+
+class SimulationRun(Base):
+    __tablename__ = "simulation_runs"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    simulation_name = Column(String, index=True, nullable=False)
+    simulation_type = Column(String, index=True, nullable=True)
+
+    sport = Column(String, index=True, nullable=False)
+    league = Column(String, index=True, nullable=False)
+    season = Column(Integer, index=True, nullable=True)
+
+    mlb_game_pk = Column(Integer, index=True, nullable=True)
+    home_team_name = Column(String, nullable=True)
+    away_team_name = Column(String, nullable=True)
+
+    iterations = Column(Integer, nullable=True)
+    model_name = Column(String, nullable=True)
+    model_version = Column(String, nullable=True)
+
+    status = Column(String, index=True, nullable=True)
+    summary_json = Column(Text, nullable=True)
+
+    started_at = Column(DateTime(timezone=True), nullable=True)
+    finished_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ============================================================
+# SECTION 30 - SIMULATION RESULT
+# ============================================================
+
+class SimulationResult(Base):
+    __tablename__ = "simulation_results"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    simulation_run_id = Column(Integer, index=True, nullable=False)
+
+    subject_type = Column(String, index=True, nullable=True)
+    subject_id = Column(Integer, index=True, nullable=True)
+    subject_name = Column(String, nullable=True)
+
+    market = Column(String, index=True, nullable=True)
+
+    projected_value = Column(Float, nullable=True)
+    probability = Column(Float, nullable=True)
+    confidence = Column(Float, nullable=True)
+
+    percentile_10 = Column(Float, nullable=True)
+    percentile_25 = Column(Float, nullable=True)
+    percentile_50 = Column(Float, nullable=True)
+    percentile_75 = Column(Float, nullable=True)
+    percentile_90 = Column(Float, nullable=True)
+
+    result_json = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+# ============================================================
+# SECTION 31 - DATABASE ROADMAP
 # ============================================================
 
 """
