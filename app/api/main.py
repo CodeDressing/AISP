@@ -765,6 +765,43 @@ def system_routes() -> dict:
         ],
     }
 
+# ============================================================
+# SECTION 16A - TEAMS ONLY SYNC
+# ============================================================
+@app.post("/admin/sync/teams")
+def admin_sync_teams_only(
+    season: int = 2026,
+    db: Session = Depends(get_db),
+) -> dict:
+    """
+    Lightweight teams-only sync.
+
+    Use this before the full MLB warehouse sync.
+    This avoids pulling rosters, players, and stats all at once.
+    """
+
+    service = RosterService(db=db)
+
+    teams = service.client.get_teams(
+        season=season,
+    )
+
+    synced = 0
+
+    for team_item in teams:
+        service._upsert_team(
+            team_item,
+        )
+        synced += 1
+
+    db.commit()
+
+    return {
+        "status": "success",
+        "operation": "teams_only_sync",
+        "season": season,
+        "teams_synced": synced,
+    }
 
 # ============================================================
 # SECTION 16 - ENTERPRISE ADMIN & WAREHOUSE ROUTES
