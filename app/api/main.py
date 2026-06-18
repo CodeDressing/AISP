@@ -99,17 +99,87 @@ def check_database_connection() -> bool:
 # SECTION 07 - ROOT ROUTES
 # ============================================================
 
-@app.get("/")
-def root() -> dict:
-    return {
-        "application": settings.app_name,
-        "version": settings.app_version,
-        "environment": settings.environment,
-        "status": "running",
-        "platform": "AISP",
-        "service": "aisp-baseball-api",
-    }
+from fastapi.responses import HTMLResponse
 
+
+@app.get("/", response_class=HTMLResponse)
+def root() -> str:
+    return """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>AISP Baseball Analytics</title>
+        <style>
+            body {
+                margin: 0;
+                background: #050816;
+                color: white;
+                font-family: Arial, sans-serif;
+            }
+
+            .hero {
+                padding: 80px;
+                text-align: center;
+            }
+
+            h1 {
+                font-size: 54px;
+                margin-bottom: 10px;
+            }
+
+            p {
+                font-size: 20px;
+                color: #cbd5e1;
+            }
+
+            .cards {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 24px;
+                padding: 40px 80px;
+            }
+
+            .card {
+                background: #111827;
+                border: 1px solid #1f2937;
+                border-radius: 18px;
+                padding: 28px;
+            }
+
+            a {
+                color: #38bdf8;
+                text-decoration: none;
+                font-weight: bold;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div class="hero">
+            <h1>⚾ AISP Baseball Analytics</h1>
+            <p>Artificial Intelligence Sports Predictor — MLB analytics, predictions, rosters, and AI chatbot.</p>
+            <p><a href="/docs">Open API Docs</a> · <a href="/health">Health Check</a> · <a href="/system/routes">Routes</a></p>
+        </div>
+
+        <div class="cards">
+            <div class="card">
+                <h2>MLB Database</h2>
+                <p>Teams, players, rosters, stats, and warehouse storage.</p>
+            </div>
+
+            <div class="card">
+                <h2>Prediction Engine</h2>
+                <p>Hit probability, game predictions, player props, and future simulations.</p>
+            </div>
+
+            <div class="card">
+                <h2>AI Assistant</h2>
+                <p>Ask baseball questions and route them into analytics and prediction logic.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
 
 # ============================================================
 # SECTION 08 - HEALTH ROUTES
