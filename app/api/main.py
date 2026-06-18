@@ -744,9 +744,130 @@ def system_routes() -> dict:
         ]
     }
 
+# ============================================================
+# SECTION 16 - ENTERPRISE ADMIN & WAREHOUSE ROUTES
+# ============================================================
+
+from app.services.roster_service import RosterService
+
+
+@app.post("/admin/sync/mlb")
+def admin_sync_mlb_database(
+    season: int = 2026,
+    db: Session = Depends(get_db),
+) -> dict:
+    """
+    Enterprise warehouse synchronization.
+    Pulls teams, rosters, players, and statistics
+    from configured MLB data providers.
+    """
+
+    service = RosterService(
+        db=db,
+    )
+
+    result = service.run_enterprise_warehouse_sync(
+        season=season,
+    )
+
+    return {
+        "status": "success",
+        "operation": "enterprise_sync",
+        "season": season,
+        "result": result,
+    }
+
+
+@app.get("/admin/database/summary")
+def admin_database_summary(
+    db: Session = Depends(get_db),
+) -> dict:
+    """
+    High-level warehouse summary.
+    """
+
+    return {
+        "teams": db.query(Team).count(),
+        "players": db.query(Player).count(),
+        "games": db.query(Game).count(),
+        "game_predictions": db.query(GamePrediction).count(),
+        "player_predictions": db.query(PlayerPrediction).count(),
+        "database_connected": check_database_connection(),
+    }
+
+
+@app.get("/admin/system/status")
+def admin_system_status(
+    db: Session = Depends(get_db),
+) -> dict:
+    """
+    Enterprise platform status endpoint.
+    """
+
+    return {
+        "app_name": settings.app_name,
+        "version": settings.app_version,
+        "environment": settings.environment,
+        "database_connected": check_database_connection(),
+        "prediction_engine": settings.prediction_engine_enabled,
+        "ai_chat": settings.ai_chat_enabled,
+        "teams_loaded": db.query(Team).count(),
+        "players_loaded": db.query(Player).count(),
+        "games_loaded": db.query(Game).count(),
+    }
+
+
+@app.get("/admin/warehouse/metrics")
+def warehouse_metrics(
+    db: Session = Depends(get_db),
+) -> dict:
+    """
+    Core warehouse metrics.
+    """
+
+    return {
+        "total_teams": db.query(Team).count(),
+        "total_players": db.query(Player).count(),
+        "total_games": db.query(Game).count(),
+        "total_game_predictions": db.query(GamePrediction).count(),
+        "total_player_predictions": db.query(PlayerPrediction).count(),
+    }
+
+
+@app.get("/admin/platform/readiness")
+def platform_readiness(
+    db: Session = Depends(get_db),
+) -> dict:
+    """
+    Enterprise readiness scoring.
+    """
+
+    score = 0
+
+    if check_database_connection():
+        score += 25
+
+    if db.query(Team).count() > 0:
+        score += 25
+
+    if db.query(Player).count() > 0:
+        score += 25
+
+    if settings.ai_chat_enabled:
+        score += 25
+
+    return {
+        "readiness_score": score,
+        "max_score": 100,
+        "status": (
+            "enterprise_ready"
+            if score >= 75
+            else "in_progress"
+        ),
+    }
 
 # ============================================================
-# SECTION 16 - FUTURE API ROADMAP
+# SECTION 17 - FUTURE API ROADMAP
 # ============================================================
 
 """
@@ -764,6 +885,11 @@ Future Endpoints
 /models
 /warehouse
 /data-quality
+/admin/sync/mlb
+/admin/database/summary
+/admin/system/status
+/admin/warehouse/metrics
+/admin/platform/readiness
 
 Multi-Sport Expansion
 
