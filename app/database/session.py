@@ -1,17 +1,24 @@
 # ============================================================
 # AISP BASEBALL ANALYTICS ENGINE
-# PHASE 1.03 PART 1
-# ENTERPRISE DATABASE INFRASTRUCTURE
+# PHASE 3.31 PART 1
+# ENTERPRISE DATABASE SESSION INFRASTRUCTURE
 # FILE: app/database/session.py
 # PURPOSE: centralized database engine, session management,
-#           dependency injection, and future warehouse support
+# FastAPI dependency injection, health checks, and future
+# warehouse/database expansion support
 # ============================================================
 
 # ============================================================
 # SECTION 01 - IMPORTS
 # ============================================================
 
+from collections.abc import Generator
+from contextlib import contextmanager
+
 from sqlalchemy import create_engine
+from sqlalchemy import text
+from sqlalchemy.engine import Engine
+from sqlalchemy.orm import Session
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -28,11 +35,12 @@ IS_SQLITE = DATABASE_URL.startswith("sqlite")
 
 
 # ============================================================
-# SECTION 03 - DATABASE ENGINE CONFIGURATION
+# SECTION 03 - DATABASE ENGINE OPTIONS
 # ============================================================
 
 ENGINE_OPTIONS = {
-    "pool_pre_ping": True,
+    "pool_pre_ping": settings.database_pool_pre_ping,
+    "echo": settings.database_echo,
 }
 
 if IS_SQLITE:
@@ -45,7 +53,7 @@ if IS_SQLITE:
 # SECTION 04 - PRIMARY DATABASE ENGINE
 # ============================================================
 
-engine = create_engine(
+engine: Engine = create_engine(
     DATABASE_URL,
     **ENGINE_OPTIONS,
 )
@@ -70,14 +78,10 @@ Base = declarative_base()
 
 
 # ============================================================
-# SECTION 07 - API DATABASE DEPENDENCY
+# SECTION 07 - FASTAPI DATABASE DEPENDENCY
 # ============================================================
 
-def get_db():
-    """
-    FastAPI dependency injection helper.
-    """
-
+def get_db() -> Generator[Session, None, None]:
     db = SessionLocal()
 
     try:
@@ -91,29 +95,40 @@ def get_db():
 # SECTION 08 - DIRECT SESSION HELPER
 # ============================================================
 
-def create_session():
-    """
-    Direct session creation helper for
-    scripts, ETL jobs, analytics jobs,
-    prediction jobs, and background workers.
-    """
-
+def create_session() -> Session:
     return SessionLocal()
 
 
 # ============================================================
-# SECTION 09 - HEALTH CHECK UTILITIES
+# SECTION 09 - CONTEXT MANAGER SESSION HELPER
+# ============================================================
+
+@contextmanager
+def managed_session() -> Generator[Session, None, None]:
+    db = SessionLocal()
+
+    try:
+        yield db
+        db.commit()
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
+
+# ============================================================
+# SECTION 10 - DATABASE HEALTH CHECK
 # ============================================================
 
 def database_health_check() -> bool:
-    """
-    Verify database connectivity.
-    """
-
     try:
-        db = SessionLocal()
-        db.execute("SELECT 1")
-        db.close()
+        with engine.connect() as connection:
+            connection.execute(
+                text("SELECT 1")
+            )
 
         return True
 
@@ -122,24 +137,48 @@ def database_health_check() -> bool:
 
 
 # ============================================================
-# SECTION 10 - FUTURE WAREHOUSE PLACEHOLDERS
+# SECTION 11 - DATABASE HEALTH DETAILS
+# ============================================================
+
+def database_health_details() -> dict:
+    return {
+        "database_url_configured": bool(DATABASE_URL),
+        "database_type": "sqlite" if IS_SQLITE else "external",
+        "connection_ok": database_health_check(),
+        "pool_pre_ping": settings.database_pool_pre_ping,
+        "echo": settings.database_echo,
+    }
+
+
+# ============================================================
+# SECTION 12 - DATABASE INITIALIZATION HELPER
+# ============================================================
+
+def initialize_database() -> None:
+    Base.metadata.create_all(
+        bind=engine,
+    )
+
+
+# ============================================================
+# SECTION 13 - FUTURE DATABASE ROADMAP
 # ============================================================
 
 """
 Future Database Targets
 
 SQLite:
-    Development
+    Local development
 
 PostgreSQL:
-    Production
+    Render production database
 
 DuckDB:
-    Analytics Warehouse
+    Analytics warehouse
 
 Redis:
-    Caching Layer
+    Caching and job state
 
 Vector Database:
-    AI Search Layer
+    AI search and player/team context retrieval
 """
