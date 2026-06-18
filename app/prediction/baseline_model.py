@@ -292,9 +292,164 @@ class BaselinePredictionEngine:
             "next_phase": "Statcast Integration",
         }
 
+# ============================================================
+# SECTION 12 - FEATURE ENGINEERING
+# ============================================================
+
+    def build_feature_vector(
+        self,
+        batting_average: float,
+        ops: float,
+        home_runs: int,
+        strikeouts: int,
+        games_played: int,
+    ) -> list[float]:
+
+        games = max(games_played, 1)
+
+        return [
+            batting_average,
+            ops,
+            home_runs / games,
+            strikeouts / games,
+            games_played,
+        ]
+
 
 # ============================================================
-# SECTION 12 - FUTURE ROADMAP
+# SECTION 13 - MODEL SCORING
+# ============================================================
+
+    def score_feature_vector(
+        self,
+        features: list[float],
+    ) -> float:
+
+        weights = [
+            0.35,
+            0.30,
+            0.20,
+            -0.10,
+            0.05,
+        ]
+
+        score = 0.0
+
+        for feature, weight in zip(
+            features,
+            weights,
+        ):
+            score += (
+                feature * weight
+            )
+
+        return score
+
+
+# ============================================================
+# SECTION 14 - ENSEMBLE PREDICTION
+# ============================================================
+
+    def ensemble_prediction(
+        self,
+        predictions: list[float],
+    ) -> float:
+
+        if not predictions:
+            return 0.50
+
+        return (
+            sum(predictions)
+            / len(predictions)
+        )
+
+
+# ============================================================
+# SECTION 15 - MONTE CARLO FOUNDATION
+# ============================================================
+
+    def monte_carlo_hit_probability(
+        self,
+        probability: float,
+        simulations: int = 1000,
+    ) -> float:
+
+        hits = 0
+
+        for _ in range(
+            simulations
+        ):
+            if (
+                random.random()
+                <= probability
+            ):
+                hits += 1
+
+        return round(
+            hits / simulations,
+            4,
+        )
+
+
+# ============================================================
+# SECTION 16 - MODEL REGISTRY INFORMATION
+# ============================================================
+
+    def model_registry_entry(
+        self,
+    ) -> dict[str, Any]:
+
+        return {
+            "model_name":
+                "baseline_prediction_engine",
+            "version":
+                "2.1",
+            "family":
+                "rules_based",
+            "future_family":
+                "machine_learning",
+            "future_models": [
+                "random_forest",
+                "xgboost",
+                "lightgbm",
+                "neural_network",
+                "ensemble",
+            ],
+        }
+
+
+# ============================================================
+# SECTION 17 - NEURAL NETWORK ROADMAP
+# ============================================================
+
+    def neural_network_architecture(
+        self,
+    ) -> dict:
+
+        return {
+            "input_features": [
+                "batting_average",
+                "ops",
+                "hard_hit_rate",
+                "barrel_rate",
+                "launch_angle",
+                "exit_velocity",
+                "pitcher_era",
+                "pitcher_whip",
+            ],
+            "hidden_layers": [
+                128,
+                64,
+                32,
+            ],
+            "output_layer": [
+                "hit_probability",
+                "home_run_probability",
+                "strikeout_probability",
+            ],
+        }
+# ============================================================
+# SECTION 18 - FUTURE ROADMAP
 # ============================================================
 
 """
