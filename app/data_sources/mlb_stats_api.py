@@ -722,9 +722,115 @@ class MLBStatsAPIClient:
 
         return players
 
+# ============================================================
+# SECTION 35 - BASEBALL SAVANT / STATCAST INTEGRATION
+# ============================================================
+
+    def get_statcast_range(
+        self,
+        start_date: str,
+        end_date: str,
+    ):
+        """
+        Pull all Statcast events between dates.
+
+        Example:
+        2025-04-01
+        2025-04-07
+        """
+
+        return statcast(
+            start_dt=start_date,
+            end_dt=end_date,
+        )
+
 
 # ============================================================
-# SECTION 35 - FUTURE DATA SOURCE ROADMAP
+# SECTION 35A - BATTER STATCAST DATA
+# ============================================================
+
+    def get_statcast_batter(
+        self,
+        player_id: int,
+        start_date: str,
+        end_date: str,
+    ):
+        """
+        Batter-level Statcast data.
+        """
+
+        return statcast_batter(
+            start_dt=start_date,
+            end_dt=end_date,
+            player_id=player_id,
+        )
+
+
+# ============================================================
+# SECTION 35B - PITCHER STATCAST DATA
+# ============================================================
+
+    def get_statcast_pitcher(
+        self,
+        player_id: int,
+        start_date: str,
+        end_date: str,
+    ):
+        """
+        Pitcher-level Statcast data.
+        """
+
+        return statcast_pitcher(
+            start_dt=start_date,
+            end_dt=end_date,
+            player_id=player_id,
+        )
+
+
+# ============================================================
+# SECTION 35C - DAILY STATCAST INGESTION
+# ============================================================
+
+    def get_daily_statcast_update(
+        self,
+        target_date: str,
+    ):
+        """
+        Single-day Statcast update.
+
+        Intended for future automated syncs.
+        """
+
+        return statcast(
+            start_dt=target_date,
+            end_dt=target_date,
+        )
+
+
+# ============================================================
+# SECTION 35D - PLAYER STATCAST PROFILE
+# ============================================================
+
+    def get_statcast_player_profile(
+        self,
+        player_id: int,
+        start_date: str,
+        end_date: str,
+    ) -> dict[str, Any]:
+        return {
+            "batter_events": self.get_statcast_batter(
+                player_id=player_id,
+                start_date=start_date,
+                end_date=end_date,
+            ),
+            "pitcher_events": self.get_statcast_pitcher(
+                player_id=player_id,
+                start_date=start_date,
+                end_date=end_date,
+            ),
+        }
+# ============================================================
+# SECTION 36 - FUTURE DATA SOURCE ROADMAP
 # ============================================================
 
 """
