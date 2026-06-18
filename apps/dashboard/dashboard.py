@@ -356,23 +356,45 @@ def render_metric_card(
 def render_command_center() -> None:
     render_header(
         "AISP Command Center",
-        "Enterprise baseball intelligence platform for MLB data, player research, predictions, and AI-assisted sports analysis.",
+        "Live MLB warehouse status, Baseball Savant connectivity, prediction readiness, and AI sports intelligence controls.",
         [
-            "MLB Intelligence",
-            "Prediction Engine",
+            "Live Warehouse",
+            "Baseball Savant",
+            "Statcast",
+            "ML Pipeline",
             "AI Analyst",
-            "Warehouse",
-            "Render Live",
         ],
     )
 
     health = api_get("/health", timeout=5)
+    summary = api_get("/admin/database/summary", timeout=10)
+    readiness = api_get("/admin/platform/readiness", timeout=10)
+    sources = api_get("/admin/data-sources/status", timeout=10)
 
     api_online = bool(health)
     database_online = bool(
         isinstance(health, dict)
         and health.get("database")
     )
+
+    teams_loaded = 0
+    players_loaded = 0
+    games_loaded = 0
+    predictions_loaded = 0
+
+    if isinstance(summary, dict):
+        teams_loaded = summary.get("teams", 0)
+        players_loaded = summary.get("players", 0)
+        games_loaded = summary.get("games", 0)
+        predictions_loaded = (
+            summary.get("game_predictions", 0)
+            + summary.get("player_predictions", 0)
+        )
+
+    readiness_score = 0
+
+    if isinstance(readiness, dict):
+        readiness_score = readiness.get("readiness_score", 0)
 
     c1, c2, c3, c4 = st.columns(4)
 
@@ -387,52 +409,175 @@ def render_command_center() -> None:
         render_metric_card(
             "Database",
             "ONLINE" if database_online else "CHECK",
-            "SQLite warehouse status",
+            "Warehouse connection status",
         )
 
     with c3:
         render_metric_card(
-            "Sport",
-            "MLB",
-            "Baseball module active",
+            "Players Loaded",
+            f"{players_loaded:,}",
+            "Current player records",
         )
 
     with c4:
         render_metric_card(
-            "Platform",
-            "Phase 4.00",
-            "AI aesthetic layer",
+            "Readiness",
+            f"{readiness_score}/100",
+            "Enterprise platform score",
         )
 
     st.divider()
 
-    st.markdown("<div class='section-kicker'>Platform Modules</div>", unsafe_allow_html=True)
-    st.markdown("<div class='section-heading'>Enterprise Sports Intelligence</div>", unsafe_allow_html=True)
+    k1, k2, k3, k4 = st.columns(4)
+
+    with k1:
+        render_metric_card(
+            "Teams",
+            f"{teams_loaded:,}",
+            "MLB teams stored",
+        )
+
+    with k2:
+        render_metric_card(
+            "Games",
+            f"{games_loaded:,}",
+            "Stored game records",
+        )
+
+    with k3:
+        render_metric_card(
+            "Predictions",
+            f"{predictions_loaded:,}",
+            "Game + player predictions",
+        )
+
+    with k4:
+        statcast_status = "UNKNOWN"
+
+        if isinstance(sources, dict):
+            statcast_status = (
+                "CONNECTED"
+                if sources.get("baseball_savant")
+                else "OFFLINE"
+            )
+
+        render_metric_card(
+            "Statcast",
+            statcast_status,
+            "Baseball Savant data source",
+        )
+
+    st.divider()
+
+    st.markdown(
+        "<div class='section-kicker'>Live Baseball Savant Test</div>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        "<div class='section-heading'>Statcast Connection</div>",
+        unsafe_allow_html=True,
+    )
+
+    s1, s2, s3 = st.columns([1, 1, 1])
+
+    with s1:
+        start_date = st.text_input(
+            "Sample Start Date",
+            value="2025-04-01",
+            key="home_statcast_start",
+        )
+
+    with s2:
+        end_date = st.text_input(
+            "Sample End Date",
+            value="2025-04-02",
+            key="home_statcast_end",
+        )
+
+    with s3:
+        st.write("")
+        st.write("")
+        run_sample = st.button(
+            "Test Statcast",
+            use_container_width=True,
+        )
+
+    if run_sample:
+        data = api_get(
+            "/admin/statcast/sample",
+            params={
+                "start_date": start_date,
+                "end_date": end_date,
+            },
+            timeout=120,
+        )
+
+        if data:
+            result = data.get("result", {})
+
+            r1, r2, r3 = st.columns(3)
+
+            with r1:
+                st.metric(
+                    "Rows Returned",
+                    result.get("rows", 0),
+                )
+
+            with r2:
+                st.metric(
+                    "Columns",
+                    result.get("columns", 0),
+                )
+
+            with r3:
+                st.metric(
+                    "Source",
+                    "Baseball Savant",
+                )
+
+            st.json(data)
+
+    st.divider()
+
+    st.markdown(
+        "<div class='section-kicker'>Command Modules</div>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        "<div class='section-heading'>Enterprise Sports Intelligence</div>",
+        unsafe_allow_html=True,
+    )
 
     m1, m2, m3 = st.columns(3)
 
     with m1:
         render_glass_card(
             "Player Intelligence",
-            "Search MLB players, inspect roster context, view profile fields, and prepare player-level predictions.",
+            "Search players, inspect MLB profiles, load Statcast context, and prepare player prop models.",
         )
 
     with m2:
         render_glass_card(
             "Prediction Workbench",
-            "Review prediction endpoints and prepare model outputs for hits, home runs, game winners, and props.",
+            "Use feature engineering, simulation logic, and future neural network models for MLB predictions.",
         )
 
     with m3:
         render_glass_card(
             "AI Analyst",
-            "Ask natural language baseball questions and route them through the database-aware AI chat system.",
+            "Ask natural language questions and route them into database-aware baseball intelligence.",
         )
 
     st.divider()
 
-    st.markdown("<div class='section-kicker'>Quick Actions</div>", unsafe_allow_html=True)
-    st.markdown("<div class='section-heading'>System Controls</div>", unsafe_allow_html=True)
+    st.markdown(
+        "<div class='section-kicker'>System Controls</div>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        "<div class='section-heading'>Operations</div>",
+        unsafe_allow_html=True,
+    )
 
     q1, q2, q3 = st.columns(3)
 
@@ -445,10 +590,8 @@ def render_command_center() -> None:
             st.json(api_get("/system/routes"))
 
     with q3:
-        if st.button("System Info", use_container_width=True):
-            st.json(api_get("/system/info"))
-
-
+        if st.button("Database Summary", use_container_width=True):
+            st.json(api_get("/admin/database/summary"))
 # ============================================================
 # SECTION 08 - PLAYERS PAGE
 # ============================================================
