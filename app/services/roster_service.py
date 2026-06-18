@@ -22,6 +22,8 @@ from app.database.models import Player
 from app.database.models import PlayerSeasonStat
 from app.database.models import RosterEntry
 from app.database.models import Team
+from app.database.models import StatcastEvent
+
 
 
 # ============================================================
@@ -848,7 +850,147 @@ class RosterService:
         }
 
 # ============================================================
-# SECTION 22 - STATCAST INGESTION PREPARATION
+# SECTION 22 - STATCAST DATABASE INGESTION
+# ============================================================
+
+    def sync_statcast_range_to_database(
+        self,
+        start_date: str,
+        end_date: str,
+        season: int = 2026,
+    ) -> dict:
+        dataset = self.client.get_statcast_range(
+            start_date=start_date,
+            end_date=end_date,
+        )
+
+        deleted_rows = (
+            self.db.query(StatcastEvent)
+            .filter(
+                StatcastEvent.game_date >= start_date,
+                StatcastEvent.game_date <= end_date,
+            )
+            .delete(
+                synchronize_session=False,
+            )
+        )
+
+        inserted_rows = 0
+
+        for _, row in dataset.iterrows():
+            row_dict = {
+                key: self._clean_statcast_value(value)
+                for key, value in row.to_dict().items()
+            }
+
+            event = self._build_statcast_event(
+                row_dict=row_dict,
+                season=season,
+            )
+
+            self.db.add(event)
+            inserted_rows += 1
+
+        self.db.commit()
+
+        return {
+            "status": "success",
+            "source": "baseball_savant_statcast",
+            "start_date": start_date,
+            "end_date": end_date,
+            "season": season,
+            "deleted_existing_rows": deleted_rows,
+            "inserted_rows": inserted_rows,
+            "columns": list(dataset.columns),
+            "errors": self.errors[:25],
+        }
+
+
+# ============================================================
+# SECTION 23 - STATCAST EVENT BUILDER
+# ============================================================
+
+    def _build_statcast_event(
+        self,
+        row_dict: dict[str, Any],
+        season: int,
+    ) -> StatcastEvent:
+        event = StatcastEvent(
+            mlb_game_pk=self._safe_int(
+                row_dict.get("game_pk")
+            ),
+            season=season,
+            game_date=row_dict.get("game_date"),
+
+            batter_id=self._safe_int(
+                row_dict.get("batter")
+            ),
+            batter_name=row_dict.get("player_name"),
+
+            pitcher_id=self._safe_int(
+                row_dict.get("pitcher")
+            ),
+            pitcher_name=None,
+
+            mlb_team_id=None,
+            team_name=row_dict.get("home_team"),
+
+            event_type=row_dict.get("events"),
+            description=row_dict.get("description"),
+            pitch_type=row_dict.get("pitch_type"),
+
+            release_speed=self._safe_float(
+                row_dict.get("release_speed")
+            ),
+            launch_speed=self._safe_float(
+                row_dict.get("launch_speed")
+            ),
+            launch_angle=self._safe_float(
+                row_dict.get("launch_angle")
+            ),
+            hit_distance=self._safe_float(
+                row_dict.get("hit_distance_sc")
+            ),
+            estimated_ba=self._safe_float(
+                row_dict.get("estimated_ba_using_speedangle")
+            ),
+            estimated_woba=self._safe_float(
+                row_dict.get("estimated_woba_using_speedangle")
+            ),
+
+            raw_json=json.dumps(
+                row_dict,
+                default=str,
+            ),
+            source="baseball_savant",
+        )
+
+        return event
+
+
+# ============================================================
+# SECTION 24 - STATCAST SAMPLE TEST
+# ============================================================
+
+    def run_statcast_sample(
+        self,
+        start_date: str,
+        end_date: str,
+    ) -> dict:
+        dataset = self.client.get_statcast_range(
+            start_date=start_date,
+            end_date=end_date,
+        )
+
+        return {
+            "rows": len(dataset.index),
+            "columns": len(dataset.columns),
+            "column_names": list(dataset.columns),
+        }
+
+
+# ============================================================
+# SECTION 25 - PLAYER STATCAST PROFILE TEST
 # ============================================================
 
     def sync_player_statcast_profile(
@@ -857,16 +999,6 @@ class RosterService:
         start_date: str,
         end_date: str,
     ) -> dict:
-        """
-        Pull Baseball Savant Statcast data for a player.
-
-        Current phase:
-        Retrieval only.
-
-        Future phase:
-        Store inside dedicated Statcast tables.
-        """
-
         result = {
             "player_id": player.mlb_player_id,
             "player_name": player.full_name,
@@ -875,12 +1007,10 @@ class RosterService:
         }
 
         try:
-            batter_data = (
-                self.client.get_statcast_batter(
-                    player_id=player.mlb_player_id,
-                    start_date=start_date,
-                    end_date=end_date,
-                )
+            batter_data = self.client.get_statcast_batter(
+                player_id=player.mlb_player_id,
+                start_date=start_date,
+                end_date=end_date,
             )
 
             result["batter_events"] = len(
@@ -895,12 +1025,10 @@ class RosterService:
             )
 
         try:
-            pitcher_data = (
-                self.client.get_statcast_pitcher(
-                    player_id=player.mlb_player_id,
-                    start_date=start_date,
-                    end_date=end_date,
-                )
+            pitcher_data = self.client.get_statcast_pitcher(
+                player_id=player.mlb_player_id,
+                start_date=start_date,
+                end_date=end_date,
             )
 
             result["pitcher_events"] = len(
@@ -914,37 +1042,13 @@ class RosterService:
                 error=exc,
             )
 
+        result["errors"] = self.errors[:25]
+
         return result
 
-# ============================================================
-# SECTION 23 - STATCAST SAMPLE TEST
-# ============================================================
-
-    def run_statcast_sample(
-        self,
-        start_date: str,
-        end_date: str,
-    ) -> dict:
-        """
-        Pull a small Statcast sample.
-
-        Useful for validating that
-        Baseball Savant is connected.
-        """
-
-        dataset = self.client.get_statcast_range(
-            start_date=start_date,
-            end_date=end_date,
-        )
-
-        return {
-            "rows": len(dataset.index),
-            "columns": len(dataset.columns),
-            "column_names": list(dataset.columns),
-        }
 
 # ============================================================
-# SECTION 24 - ENTERPRISE DATA SOURCE STATUS
+# SECTION 26 - ENTERPRISE DATA SOURCE STATUS
 # ============================================================
 
     def build_data_source_status(
@@ -953,6 +1057,7 @@ class RosterService:
         return {
             "mlb_stats_api": True,
             "baseball_savant": True,
+            "statcast_database_ingestion": True,
             "fangraphs": False,
             "retrosheet": False,
             "lahman": False,
@@ -960,31 +1065,46 @@ class RosterService:
             "weather_feed": False,
         }
 
+
 # ============================================================
-# SECTION 25 - WAREHOUSE EXPANSION ROADMAP
+# SECTION 27 - STATCAST VALUE CLEANER
+# ============================================================
+
+    @staticmethod
+    def _clean_statcast_value(
+        value: object,
+    ) -> object:
+        if value is None:
+            return None
+
+        try:
+            if value != value:
+                return None
+        except Exception:
+            pass
+
+        return value
+
+
+# ============================================================
+# SECTION 28 - WAREHOUSE EXPANSION ROADMAP
 # ============================================================
 
 """
-Phase 4.08
-Statcast database tables
+Phase 4.15
+Expose POST /admin/sync/statcast/range
 
-Phase 4.09
-Statcast ingestion service
+Phase 4.16
+Dashboard Statcast database sync button
 
-Phase 4.10
-Retrosheet integration
+Phase 4.17
+Statcast row counts and data quality scoring
 
-Phase 4.11
-Lahman historical database
+Phase 4.18
+Feature engineering from Statcast events
 
-Phase 4.12
-Injury warehouse
-
-Phase 4.13
-Weather intelligence
-
-Phase 4.14
-Sportsbook odds ingestion
+Phase 4.19
+Neural network training datasets
 
 Phase 5.00
 Enterprise baseball intelligence platform
