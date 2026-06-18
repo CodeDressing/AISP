@@ -519,3 +519,201 @@ class AIChatMessage(Base):
     model_name = Column(String, nullable=True)
     raw_context = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+# ============================================================
+# SECTION 19 - PLAYER CAREER STATS MODEL
+# ============================================================
+
+class PlayerCareerStat(Base):
+    __tablename__ = "player_career_stats"
+
+    id = Column(Integer, primary_key=True, index=True)
+    mlb_player_id = Column(Integer, index=True, nullable=False)
+    player_name = Column(String, nullable=True)
+    group_name = Column(String, index=True, nullable=False)
+
+    games_played = Column(Integer, nullable=True)
+    at_bats = Column(Integer, nullable=True)
+    runs = Column(Integer, nullable=True)
+    hits = Column(Integer, nullable=True)
+    doubles = Column(Integer, nullable=True)
+    triples = Column(Integer, nullable=True)
+    home_runs = Column(Integer, nullable=True)
+    rbi = Column(Integer, nullable=True)
+    stolen_bases = Column(Integer, nullable=True)
+    strike_outs = Column(Integer, nullable=True)
+    base_on_balls = Column(Integer, nullable=True)
+    batting_average = Column(Float, nullable=True)
+    obp = Column(Float, nullable=True)
+    slg = Column(Float, nullable=True)
+    ops = Column(Float, nullable=True)
+
+    wins = Column(Integer, nullable=True)
+    losses = Column(Integer, nullable=True)
+    era = Column(Float, nullable=True)
+    innings_pitched = Column(String, nullable=True)
+    whip = Column(Float, nullable=True)
+    saves = Column(Integer, nullable=True)
+
+    raw_json = Column(Text, nullable=True)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("mlb_player_id", "group_name", name="uq_player_career_group"),
+    )
+
+
+# ============================================================
+# SECTION 20 - PLAYER GAME LOG MODEL
+# ============================================================
+
+class PlayerGameLog(Base):
+    __tablename__ = "player_game_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    season = Column(Integer, index=True, nullable=False)
+    mlb_game_pk = Column(Integer, index=True, nullable=True)
+    game_date = Column(String, index=True, nullable=True)
+
+    mlb_player_id = Column(Integer, index=True, nullable=False)
+    player_name = Column(String, nullable=True)
+    mlb_team_id = Column(Integer, index=True, nullable=True)
+    team_name = Column(String, nullable=True)
+    opponent_team_id = Column(Integer, index=True, nullable=True)
+    opponent_team_name = Column(String, nullable=True)
+
+    group_name = Column(String, index=True, nullable=False)
+
+    at_bats = Column(Integer, nullable=True)
+    runs = Column(Integer, nullable=True)
+    hits = Column(Integer, nullable=True)
+    home_runs = Column(Integer, nullable=True)
+    rbi = Column(Integer, nullable=True)
+    base_on_balls = Column(Integer, nullable=True)
+    strike_outs = Column(Integer, nullable=True)
+
+    innings_pitched = Column(String, nullable=True)
+    earned_runs = Column(Integer, nullable=True)
+
+    raw_json = Column(Text, nullable=True)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("season", "mlb_game_pk", "mlb_player_id", "group_name", name="uq_player_game_log"),
+    )
+
+
+# ============================================================
+# SECTION 21 - PLAYER SPLIT MODEL
+# ============================================================
+
+class PlayerSplit(Base):
+    __tablename__ = "player_splits"
+
+    id = Column(Integer, primary_key=True, index=True)
+    season = Column(Integer, index=True, nullable=False)
+    mlb_player_id = Column(Integer, index=True, nullable=False)
+    player_name = Column(String, nullable=True)
+
+    group_name = Column(String, index=True, nullable=False)
+    split_type = Column(String, index=True, nullable=False)
+    split_label = Column(String, nullable=True)
+
+    games_played = Column(Integer, nullable=True)
+    at_bats = Column(Integer, nullable=True)
+    hits = Column(Integer, nullable=True)
+    home_runs = Column(Integer, nullable=True)
+    batting_average = Column(Float, nullable=True)
+    obp = Column(Float, nullable=True)
+    slg = Column(Float, nullable=True)
+    ops = Column(Float, nullable=True)
+
+    raw_json = Column(Text, nullable=True)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("season", "mlb_player_id", "group_name", "split_type", "split_label", name="uq_player_split"),
+    )
+
+
+# ============================================================
+# SECTION 22 - VENUE MODEL
+# ============================================================
+
+class Venue(Base):
+    __tablename__ = "venues"
+
+    id = Column(Integer, primary_key=True, index=True)
+    mlb_venue_id = Column(Integer, unique=True, index=True, nullable=False)
+    name = Column(String, nullable=False)
+    city = Column(String, nullable=True)
+    state = Column(String, nullable=True)
+    country = Column(String, nullable=True)
+    surface = Column(String, nullable=True)
+    capacity = Column(Integer, nullable=True)
+
+    raw_json = Column(Text, nullable=True)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+# ============================================================
+# SECTION 23 - DATA SYNC LOG MODEL
+# ============================================================
+
+class DataSyncLog(Base):
+    __tablename__ = "data_sync_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    sync_name = Column(String, index=True, nullable=False)
+    season = Column(Integer, index=True, nullable=True)
+    status = Column(String, index=True, nullable=False)
+
+    records_processed = Column(Integer, nullable=True)
+    records_created = Column(Integer, nullable=True)
+    records_updated = Column(Integer, nullable=True)
+    errors = Column(Integer, nullable=True)
+
+    message = Column(Text, nullable=True)
+    raw_json = Column(Text, nullable=True)
+
+    started_at = Column(DateTime(timezone=True), nullable=True)
+    finished_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ============================================================
+# SECTION 24 - DATA QUALITY CHECK MODEL
+# ============================================================
+
+class DataQualityCheck(Base):
+    __tablename__ = "data_quality_checks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    check_name = Column(String, index=True, nullable=False)
+    table_name = Column(String, index=True, nullable=False)
+    status = Column(String, index=True, nullable=False)
+
+    expected_count = Column(Integer, nullable=True)
+    actual_count = Column(Integer, nullable=True)
+    issue_count = Column(Integer, nullable=True)
+
+    message = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ============================================================
+# SECTION 25 - DATABASE ROADMAP
+# ============================================================
+
+"""
+Next Database Expansion Targets
+
+SECTION 26 - BettingLine
+SECTION 27 - ParkFactor
+SECTION 28 - WeatherSnapshot
+SECTION 29 - LineupSnapshot
+SECTION 30 - ProbablePitcher
+SECTION 31 - ModelFeatureStore
+SECTION 32 - SimulationRun
+SECTION 33 - SimulationResult
+"""
