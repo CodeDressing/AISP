@@ -704,31 +704,165 @@ def render_ai_analyst_page() -> None:
 # ============================================================
 
 def render_analytics_page() -> None:
+
     render_header(
-        "Analytics Center",
-        "Future command center for batting, pitching, fielding, Statcast, and leaderboard intelligence.",
-        ["Batting", "Pitching", "Fielding", "Statcast"],
+        "Baseball Intelligence Center",
+        "Live Statcast, warehouse analytics, data source monitoring, and future machine learning insights.",
+        [
+            "Statcast",
+            "Baseball Savant",
+            "ML Models",
+            "Predictions",
+            "Warehouse",
+        ],
     )
 
-    col1, col2, col3, col4 = st.columns(4)
-
-    with col1:
-        render_metric_card("Batting", "Planned", "Leaderboards and player cards")
-
-    with col2:
-        render_metric_card("Pitching", "Planned", "ERA, WHIP, K-rate, projections")
-
-    with col3:
-        render_metric_card("Fielding", "Planned", "Position and defensive metrics")
-
-    with col4:
-        render_metric_card("Statcast", "Planned", "Exit velocity, barrels, xwOBA")
-
-    st.warning(
-        "Phase 4.01 will add charts, player cards, comparison tables, and visual leaderboards."
+    tab1, tab2, tab3, tab4 = st.tabs(
+        [
+            "Statcast",
+            "Data Sources",
+            "ML Pipeline",
+            "Warehouse",
+        ]
     )
 
+    # ========================================================
+    # TAB 1 - STATCAST
+    # ========================================================
 
+    with tab1:
+
+        st.subheader(
+            "⚾ Baseball Savant / Statcast"
+        )
+
+        c1, c2 = st.columns(2)
+
+        with c1:
+            start_date = st.text_input(
+                "Start Date",
+                value="2025-04-01",
+            )
+
+        with c2:
+            end_date = st.text_input(
+                "End Date",
+                value="2025-04-02",
+            )
+
+        if st.button(
+            "Pull Statcast Sample",
+            use_container_width=True,
+        ):
+
+            data = api_get(
+                "/admin/statcast/sample",
+                params={
+                    "start_date": start_date,
+                    "end_date": end_date,
+                },
+                timeout=120,
+            )
+
+            if data:
+                st.success(
+                    "Statcast connection successful"
+                )
+
+                st.json(data)
+
+        st.divider()
+
+        player_id = st.number_input(
+            "Player ID",
+            value=660271,
+            step=1,
+        )
+
+        if st.button(
+            "Load Player Statcast Profile",
+            use_container_width=True,
+        ):
+
+            data = api_get(
+                f"/admin/statcast/player/{int(player_id)}",
+                params={
+                    "start_date": start_date,
+                    "end_date": end_date,
+                },
+                timeout=120,
+            )
+
+            if data:
+                st.json(data)
+
+    # ========================================================
+    # TAB 2 - DATA SOURCES
+    # ========================================================
+
+    with tab2:
+
+        st.subheader(
+            "Connected Data Sources"
+        )
+
+        status = api_get(
+            "/admin/data-sources/status"
+        )
+
+        if status:
+            st.json(status)
+
+    # ========================================================
+    # TAB 3 - MACHINE LEARNING
+    # ========================================================
+
+    with tab3:
+
+        st.subheader(
+            "AISP Neural Network Roadmap"
+        )
+
+        st.code(
+            """
+Input Layer
+│
+├── Player Features
+├── Team Features
+├── Statcast Features
+├── Injury Features
+├── Weather Features
+├── Betting Features
+│
+Hidden Layer 1 (256)
+Hidden Layer 2 (128)
+Hidden Layer 3 (64)
+│
+Output Layer
+├── Win Probability
+├── Hit Probability
+├── HR Probability
+├── Strikeout Probability
+├── Player Props
+            """
+        )
+
+        st.info(
+            "Current Phase: Feature Engineering Foundation"
+        )
+
+    # ========================================================
+    # TAB 4 - WAREHOUSE
+    # ========================================================
+
+    with tab4:
+
+        summary = api_get(
+            "/admin/database/summary"
+        )
+
+        if summary:
+            st.json(summary)
 # ============================================================
 # SECTION 14 - WAREHOUSE PAGE
 # ============================================================
