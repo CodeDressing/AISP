@@ -440,6 +440,76 @@ AISP Baseball Analytics Engine • Enterprise AI Sports Intelligence
 </body>
 </html>
 """
+
+# ============================================================
+# SECTION 07A - SAFETY, PRIVACY & LIABILITY NOTICE
+# ============================================================
+
+@app.get("/legal")
+def legal_notice() -> dict:
+    return {
+        "platform": "AISP Baseball Analytics Engine",
+
+        "important_notice": (
+            "AISP is an experimental sports analytics, "
+            "research, and prediction platform."
+        ),
+
+        "data_collection": {
+            "collects_personal_information": False,
+            "collects_payment_information": False,
+            "collects_betting_account_information": False,
+            "collects_private_medical_information": False,
+            "primary_data_sources": [
+                "MLB Stats API",
+                "Baseball Savant",
+                "Publicly Available Sports Data"
+            ]
+        },
+
+        "prediction_disclaimer": (
+            "Predictions, probabilities, simulations, "
+            "projections, rankings, and AI-generated analysis "
+            "are estimates only and are not guarantees of future results."
+        ),
+
+        "financial_disclaimer": (
+            "AISP does not provide financial advice, "
+            "investment advice, gambling advice, or wagering advice."
+        ),
+
+        "sports_disclaimer": (
+            "Sports outcomes are inherently uncertain and may be "
+            "affected by injuries, roster changes, coaching decisions, "
+            "weather conditions, officiating decisions, player performance, "
+            "and other factors outside the platform's control."
+        ),
+
+        "user_responsibility": (
+            "Users are solely responsible for how they use "
+            "information, predictions, analytics, or recommendations "
+            "provided by the platform."
+        ),
+
+        "warranty_disclaimer": (
+            "The platform is provided on an 'AS IS' and "
+            "'AS AVAILABLE' basis without warranties of any kind."
+        ),
+
+        "liability_limitation": (
+            "To the maximum extent permitted by law, AISP and its "
+            "operators shall not be liable for losses, damages, "
+            "missed opportunities, wagering outcomes, business losses, "
+            "or other consequences resulting from the use of the platform."
+        ),
+
+        "privacy_notice": (
+            "AISP currently focuses on public sports data and "
+            "does not intentionally collect sensitive personal information."
+        ),
+
+        "version": "1.0"
+    }
 # ============================================================
 # SECTION 08 - HEALTH ROUTES
 # ============================================================
