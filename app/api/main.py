@@ -123,7 +123,6 @@ def root() -> str:
 }
 
 body{
-
     background:
     radial-gradient(circle at top left,#2563eb33,transparent 35%),
     radial-gradient(circle at top right,#06b6d433,transparent 25%),
@@ -133,14 +132,25 @@ body{
     font-family:Inter,Arial,sans-serif;
 }
 
-.hero{
+.top-warning{
 
-    padding:100px 60px;
+    background:#7c2d12;
+    border-bottom:3px solid #f59e0b;
+    padding:20px;
+    text-align:center;
+    font-weight:700;
+    color:#fde68a;
+    position:sticky;
+    top:0;
+    z-index:9999;
+}
+
+.hero{
+    padding:80px 60px;
     text-align:center;
 }
 
 .logo{
-
     font-size:18px;
     color:#38bdf8;
     letter-spacing:3px;
@@ -148,14 +158,12 @@ body{
 }
 
 .title{
-
     font-size:72px;
     font-weight:900;
     margin-top:20px;
 }
 
 .subtitle{
-
     margin-top:20px;
     color:#cbd5e1;
     max-width:900px;
@@ -165,13 +173,34 @@ body{
     font-size:20px;
 }
 
-.button-row{
+.notice{
 
+    max-width:1200px;
+    margin:40px auto;
+    padding:30px;
+
+    background:#451a03;
+    border:2px solid #f59e0b;
+    border-radius:24px;
+
+    text-align:left;
+}
+
+.notice h2{
+    color:#fbbf24;
+    margin-bottom:20px;
+}
+
+.notice p{
+    color:#fde68a;
+    line-height:1.9;
+}
+
+.button-row{
     margin-top:40px;
 }
 
 .btn{
-
     display:inline-block;
     margin:8px;
     padding:14px 28px;
@@ -181,19 +210,16 @@ body{
 }
 
 .primary{
-
     background:#2563eb;
     color:white;
 }
 
 .secondary{
-
     border:1px solid #334155;
     color:white;
 }
 
 .metrics{
-
     display:grid;
     grid-template-columns:repeat(4,1fr);
     gap:20px;
@@ -201,7 +227,6 @@ body{
 }
 
 .metric{
-
     background:#111827;
     border:1px solid #1f2937;
     border-radius:18px;
@@ -210,19 +235,16 @@ body{
 }
 
 .metric-value{
-
     font-size:36px;
     font-weight:900;
 }
 
 .metric-label{
-
     color:#94a3b8;
     margin-top:8px;
 }
 
 .modules{
-
     display:grid;
     grid-template-columns:repeat(3,1fr);
     gap:24px;
@@ -230,7 +252,6 @@ body{
 }
 
 .card{
-
     background:#111827;
     border:1px solid #1f2937;
     border-radius:22px;
@@ -238,31 +259,15 @@ body{
 }
 
 .card h2{
-
     margin-bottom:14px;
 }
 
 .card p{
-
     color:#cbd5e1;
     line-height:1.6;
 }
 
-.roadmap{
-
-    padding:60px;
-}
-
-.roadmap-box{
-
-    background:#111827;
-    border-radius:22px;
-    border:1px solid #1f2937;
-    padding:30px;
-}
-
 .footer{
-
     text-align:center;
     padding:40px;
     color:#64748b;
@@ -290,6 +295,12 @@ font-size:48px;
 
 <body>
 
+<div class="top-warning">
+
+⚠ EXPERIMENTAL SPORTS ANALYTICS PLATFORM • NO FINANCIAL, BETTING, LEGAL, OR PROFESSIONAL ADVICE • SEE /legal
+
+</div>
+
 <div class="hero">
 
 <div class="logo">
@@ -304,10 +315,48 @@ Enterprise AI Sports Intelligence
 
 Artificial Intelligence Sports Predictor.
 
-A next-generation MLB analytics platform combining
-player intelligence, team intelligence, predictive modeling,
-AI-assisted analysis, database warehousing, and future
-sportsbook intelligence.
+Advanced baseball analytics, statistical intelligence,
+machine learning research, predictive modeling,
+and future sports intelligence systems.
+
+</div>
+
+<div class="notice">
+
+<h2>
+⚠ IMPORTANT SAFETY, PRIVACY & LIABILITY NOTICE
+</h2>
+
+<p>
+
+AISP is an experimental sports analytics platform.
+
+This platform currently uses publicly available sports
+information including MLB Stats API and Baseball Savant data.
+
+AISP does not intentionally collect passwords,
+payment information, betting account information,
+private communications, or sensitive personal information.
+
+Predictions, simulations, rankings, probabilities,
+AI-generated analysis, projections, and recommendations
+are estimates only and are not guarantees of future outcomes.
+
+Sports outcomes are inherently uncertain.
+
+Users remain solely responsible for any decisions made
+using information displayed by this platform.
+
+AISP does not provide financial advice,
+investment advice, gambling advice,
+medical advice, legal advice,
+or professional consulting services.
+
+Full notice available at:
+
+/legal
+
+</p>
 
 </div>
 
@@ -356,91 +405,45 @@ API Routes
 <div class="modules">
 
 <div class="card">
-
 <h2>Player Intelligence</h2>
-
 <p>
 Player profiles, historical performance,
-career trends, projections, and AI-assisted
-analysis.
+career trends, projections, and AI-assisted analysis.
 </p>
-
 </div>
 
 <div class="card">
-
 <h2>Prediction Engine</h2>
-
 <p>
-Hit probabilities, home run models,
-game predictions, simulations, and future
-machine learning pipelines.
+Game forecasts, player projections,
+probability models, simulations,
+and future neural-network systems.
 </p>
-
 </div>
 
 <div class="card">
-
 <h2>AI Analyst</h2>
-
 <p>
-Natural language baseball research
-powered by the AISP AI routing layer.
+Natural-language sports research powered
+by the AISP AI routing engine.
 </p>
-
-</div>
-
-</div>
-
-<div class="roadmap">
-
-<div class="roadmap-box">
-
-<h2>Platform Roadmap</h2>
-
-<br>
-
-<p>
-
-Phase 4.01:
-Enterprise Dashboard UI
-
-<br><br>
-
-Phase 4.02:
-Player Cards, Team Cards, Leaderboards
-
-<br><br>
-
-Phase 4.03:
-Statcast Visualizations
-
-<br><br>
-
-Phase 4.04:
-Monte Carlo Simulation Engine
-
-<br><br>
-
-Phase 5.00:
-Sportsbook Intelligence Platform
-
-</p>
-
 </div>
 
 </div>
 
 <div class="footer">
 
-AISP Baseball Analytics Engine • Enterprise AI Sports Intelligence
+AISP Baseball Analytics Engine
+
+<br><br>
+
+⚠ Experimental Analytics Platform
 
 </div>
 
 </body>
 </html>
 """
-
 # ============================================================
 # SECTION 07A - SAFETY, PRIVACY & LIABILITY NOTICE
 # ============================================================
