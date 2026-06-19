@@ -273,45 +273,91 @@ class RosterService:
         self,
         item: dict,
     ) -> Team:
+        mlb_team_id = self._safe_int(
+            item.get("id")
+        )
+
+        if mlb_team_id is None:
+            raise ValueError(
+                "Cannot upsert team because MLB team id is missing."
+            )
+
         team = (
             self.db.query(Team)
             .filter(
-                Team.mlb_team_id == item["id"],
+                Team.mlb_team_id == mlb_team_id,
             )
             .first()
         )
 
         if team is None:
             team = Team(
-                mlb_team_id=item["id"],
-                name=item.get(
-                    "name",
-                    "Unknown",
+                mlb_team_id=mlb_team_id,
+                name=(
+                    item.get("name")
+                    or "Unknown"
                 ),
             )
             self.db.add(team)
 
-        team.name = item.get("name")
+        team.name = (
+            item.get("name")
+            or team.name
+            or "Unknown"
+        )
         team.abbreviation = item.get("abbreviation")
-        team.league = (
-            item.get("league", {})
-            .get("name")
-        )
-        team.division = (
-            item.get("division", {})
-            .get("name")
-        )
-        team.venue_name = (
-            item.get("venue", {})
-            .get("name")
-        )
-        team.active = str(
-            item.get("active")
-        )
+        team.league = item.get("league", {}).get("name")
+        team.division = item.get("division", {}).get("name")
+        team.venue_name = item.get("venue", {}).get("name")
+        team.active = str(item.get("active"))
 
         return team
 
 
+    def sync_teams_only(
+        self,
+        season: int = 2026,
+    ) -> dict:
+        self.errors = []
+
+        teams = self.client.get_teams(
+            season=season,
+        )
+
+        teams_found = len(teams)
+        teams_synced = 0
+
+        for team_item in teams:
+            try:
+                self._upsert_team(
+                    team_item,
+                )
+                teams_synced += 1
+
+            except Exception as exc:
+                self._record_error(
+                    scope="teams_only_sync",
+                    identifier=team_item.get("id"),
+                    error=exc,
+                )
+
+        self.db.commit()
+
+        teams_in_database = (
+            self.db.query(Team)
+            .count()
+        )
+
+        return {
+            "status": "success",
+            "operation": "teams_only_sync",
+            "season": season,
+            "teams_found_from_mlb_api": teams_found,
+            "teams_synced": teams_synced,
+            "teams_in_database": teams_in_database,
+            "errors": len(self.errors),
+            "error_details": self.errors[:25],
+        }
 # ============================================================
 # SECTION 10 - PLAYER UPSERT LOGIC
 # ============================================================
@@ -1085,7 +1131,209 @@ class RosterService:
 
         return value
 
+# ============================================================
+# SECTION 29 - FULL ROSTER INGESTION ENGINE
+# ============================================================
 
+    def sync_full_rosters(
+        self,
+        season: int = 2026,
+    ) -> dict:
+        """
+        Pull every MLB team's full roster.
+
+        This is a lighter sync than the complete
+        enterprise warehouse sync and is intended
+        to validate player ingestion before advanced
+        stat and Statcast ingestion.
+        """
+
+        self.errors = []
+
+        teams = (
+            self.db.query(Team)
+            .all()
+        )
+
+        teams_processed = 0
+        players_processed = 0
+        roster_entries_created = 0
+
+        for team in teams:
+
+            try:
+
+                roster = self.client.get_roster(
+                    team_id=team.mlb_team_id,
+                    season=season,
+                    roster_type="fullRoster",
+                )
+
+                teams_processed += 1
+
+                for roster_item in roster:
+
+                    try:
+
+                        person = (
+                            roster_item.get(
+                                "person",
+                                {},
+                            )
+                        )
+
+                        position = (
+                            roster_item
+                            .get(
+                                "position",
+                                {},
+                            )
+                            .get(
+                                "abbreviation"
+                            )
+                        )
+
+                        player_id = (
+                            person.get("id")
+                        )
+
+                        if not player_id:
+                            continue
+
+                        player_detail = (
+                            self.client.get_player(
+                                player_id
+                            )
+                            or person
+                        )
+
+                        player = (
+                            self._upsert_player(
+                                item=player_detail,
+                                team=team,
+                                position=position,
+                            )
+                        )
+
+                        self._upsert_roster_entry(
+                            season=season,
+                            team=team,
+                            player=player,
+                            roster_item=roster_item,
+                            position=position,
+                            roster_type="fullRoster",
+                        )
+
+                        players_processed += 1
+                        roster_entries_created += 1
+
+                    except Exception as exc:
+
+                        self._record_error(
+                            scope="full_roster_player",
+                            identifier=player_id,
+                            error=exc,
+                        )
+
+                self.db.commit()
+
+            except Exception as exc:
+
+                self._record_error(
+                    scope="full_roster_team",
+                    identifier=team.mlb_team_id,
+                    error=exc,
+                )
+
+                self.db.rollback()
+
+        return {
+            "status": "success",
+            "operation": "full_roster_sync",
+            "season": season,
+            "teams_processed": teams_processed,
+            "players_processed": players_processed,
+            "roster_entries_created": roster_entries_created,
+            "players_in_database": (
+                self.db.query(Player)
+                .count()
+            ),
+            "roster_entries_in_database": (
+                self.db.query(RosterEntry)
+                .count()
+            ),
+            "errors": len(
+                self.errors
+            ),
+            "error_details": (
+                self.errors[:25]
+            ),
+        }
+# ============================================================
+# SECTION 30 - WAREHOUSE AUDIT ENGINE
+# ============================================================
+
+    def build_warehouse_audit(
+        self,
+    ) -> dict:
+
+        teams = (
+            self.db.query(Team)
+            .count()
+        )
+
+        players = (
+            self.db.query(Player)
+            .count()
+        )
+
+        roster_entries = (
+            self.db.query(RosterEntry)
+            .count()
+        )
+
+        player_stats = (
+            self.db.query(
+                PlayerSeasonStat
+            ).count()
+        )
+
+        statcast_events = (
+            self.db.query(
+                StatcastEvent
+            ).count()
+        )
+
+        completion_score = 0
+
+        if teams > 0:
+            completion_score += 20
+
+        if players > 0:
+            completion_score += 20
+
+        if roster_entries > 0:
+            completion_score += 20
+
+        if player_stats > 0:
+            completion_score += 20
+
+        if statcast_events > 0:
+            completion_score += 20
+
+        return {
+            "warehouse_score": completion_score,
+            "teams": teams,
+            "players": players,
+            "roster_entries": roster_entries,
+            "player_stats": player_stats,
+            "statcast_events": statcast_events,
+            "status": (
+                "ready"
+                if completion_score >= 80
+                else "building"
+            ),
+        }
 # ============================================================
 # SECTION 28 - WAREHOUSE EXPANSION ROADMAP
 # ============================================================
@@ -1109,3 +1357,4 @@ Neural network training datasets
 Phase 5.00
 Enterprise baseball intelligence platform
 """
+
