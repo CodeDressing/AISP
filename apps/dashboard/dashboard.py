@@ -1244,14 +1244,14 @@ Output Layer
 def render_warehouse_page() -> None:
 
     render_header(
-        "AISP Data Warehouse",
-        "View exactly what data is stored, what has been synced, and what still needs to be loaded.",
+        "AISP Warehouse Control Room",
+        "This is where you can see what data exists, sync new data, view teams, search players, and verify progress.",
         [
-            "Teams",
-            "Players",
-            "Games",
-            "Predictions",
-            "Statcast",
+            "Data Progress",
+            "Sync Controls",
+            "Teams Viewer",
+            "Players Viewer",
+            "Prediction Readiness",
         ],
     )
 
@@ -1260,209 +1260,194 @@ def render_warehouse_page() -> None:
         timeout=20,
     )
 
+    audit = api_get(
+        "/admin/warehouse/audit",
+        timeout=20,
+    )
+
     if not summary:
         st.error(
-            "Unable to load warehouse summary."
+            "Unable to load database summary. Check API connection."
         )
         return
+
+    st.subheader("Current Database Counts")
 
     c1, c2, c3, c4, c5 = st.columns(5)
 
     with c1:
-        st.metric(
-            "Teams",
-            summary.get("teams", 0),
-        )
+        st.metric("Teams", summary.get("teams", 0))
 
     with c2:
-        st.metric(
-            "Players",
-            summary.get("players", 0),
-        )
+        st.metric("Players", summary.get("players", 0))
 
     with c3:
-        st.metric(
-            "Games",
-            summary.get("games", 0),
-        )
+        st.metric("Games", summary.get("games", 0))
 
     with c4:
         st.metric(
             "Predictions",
-            (
-                summary.get("game_predictions", 0)
-                +
-                summary.get("player_predictions", 0)
-            ),
+            summary.get("game_predictions", 0)
+            + summary.get("player_predictions", 0),
         )
 
     with c5:
-        st.metric(
-            "Statcast",
-            summary.get(
-                "statcast_events",
-                0,
-            ),
-        )
+        st.metric("Statcast", summary.get("statcast_events", 0))
 
     st.divider()
 
-    st.subheader(
-        "Warehouse Progress"
-    )
+    st.subheader("Warehouse Audit")
 
-    total_score = 0
-
-    if summary.get("teams", 0) > 0:
-        total_score += 20
-
-    if summary.get("players", 0) > 0:
-        total_score += 20
-
-    if summary.get("games", 0) > 0:
-        total_score += 20
-
-    if summary.get("statcast_events", 0) > 0:
-        total_score += 20
-
-    if (
-        summary.get("game_predictions", 0)
-        +
-        summary.get("player_predictions", 0)
-    ) > 0:
-        total_score += 20
-
-    st.progress(
-        total_score / 100
-    )
-
-    st.write(
-        f"Warehouse Completion: {total_score}%"
-    )
+    if audit:
+        score = audit.get("warehouse_score", 0)
+        st.progress(score / 100)
+        st.write(f"Warehouse Score: {score}/100")
+        st.json(audit)
+    else:
+        st.warning("Warehouse audit endpoint is not available yet.")
 
     st.divider()
 
-    left, right = st.columns(2)
+    st.subheader("Sync Data Into AISP")
 
-    with left:
+    season = st.number_input(
+        "Season",
+        value=2026,
+        step=1,
+    )
 
-        st.subheader(
-            "Sync Operations"
-        )
+    s1, s2, s3 = st.columns(3)
 
-        season = st.number_input(
-            "Season",
-            value=2026,
-            step=1,
-        )
-
-        if st.button(
-            "Sync Teams",
-            use_container_width=True,
-        ):
-
+    with s1:
+        if st.button("1. Sync Teams", use_container_width=True):
             result = api_post(
-                "/admin/sync/teams",
-                {
-                    "season": season,
-                },
+                f"/admin/sync/teams?season={int(season)}",
+                payload={},
                 timeout=120,
             )
 
             if result:
-                st.success(
-                    "Teams sync completed."
-                )
+                st.success("Teams sync finished.")
                 st.json(result)
 
-        if st.button(
-            "Sync MLB Warehouse",
-            use_container_width=True,
-        ):
-
+    with s2:
+        if st.button("2. Sync Rosters / Players", use_container_width=True):
             result = api_post(
-                "/admin/sync/mlb",
-                {
-                    "season": season,
-                },
+                f"/admin/sync/rosters?season={int(season)}",
+                payload={},
+                timeout=300,
+            )
+
+            if result:
+                st.success("Roster sync finished.")
+                st.json(result)
+
+    with s3:
+        if st.button("3. Full MLB Sync", use_container_width=True):
+            result = api_post(
+                f"/admin/sync/mlb?season={int(season)}",
+                payload={},
                 timeout=600,
             )
 
             if result:
-                st.success(
-                    "Warehouse sync completed."
-                )
+                st.success("Full MLB sync finished.")
                 st.json(result)
 
-    with right:
-
-        st.subheader(
-            "Current Warehouse Snapshot"
-        )
-
-        st.json(summary)
-
     st.divider()
 
-    st.subheader(
-        "Teams Currently Loaded"
+    tab1, tab2, tab3 = st.tabs(
+        [
+            "View Teams",
+            "Search Players",
+            "Raw System Data",
+        ]
     )
 
-    teams = api_get(
-        "/teams",
-        timeout=20,
-    )
+    with tab1:
+        st.subheader("All Teams In Database")
 
-    if teams:
-
-        st.success(
-            f"{len(teams)} teams loaded."
-        )
-
-        st.dataframe(
-            teams,
-            use_container_width=True,
-        )
-
-    else:
-
-        st.warning(
-            "No teams currently loaded."
-        )
-
-    st.divider()
-
-    st.subheader(
-        "Player Database"
-    )
-
-    player_search = st.text_input(
-        "Search Players",
-        value="Judge",
-    )
-
-    if st.button(
-        "Search Database",
-        use_container_width=True,
-    ):
-
-        players = api_get(
-            "/players/search",
-            params={
-                "q": player_search,
-            },
+        teams = api_get(
+            "/teams",
             timeout=20,
         )
 
-        if players:
+        if teams:
+            st.success(f"{len(teams)} teams found.")
             st.dataframe(
-                players,
+                teams,
                 use_container_width=True,
             )
+
+            team_options = {
+                f"{team.get('name')} ({team.get('abbreviation')})": team
+                for team in teams
+            }
+
+            selected_team_label = st.selectbox(
+                "Select Team",
+                list(team_options.keys()),
+            )
+
+            st.json(
+                team_options[selected_team_label]
+            )
+
         else:
             st.warning(
-                "No players found."
+                "No teams found. Click 'Sync Teams' above first."
             )
+
+    with tab2:
+        st.subheader("Search Players In Database")
+
+        player_search = st.text_input(
+            "Player Search",
+            value="Judge",
+        )
+
+        if st.button("Search Players", use_container_width=True):
+            players = api_get(
+                "/players/search",
+                params={
+                    "q": player_search,
+                },
+                timeout=20,
+            )
+
+            if players:
+                st.success(f"{len(players)} player results found.")
+                st.dataframe(
+                    players,
+                    use_container_width=True,
+                )
+
+                player_options = {
+                    f"{player.get('name')} | {player.get('team')} | {player.get('position')}": player
+                    for player in players
+                }
+
+                selected_player_label = st.selectbox(
+                    "Select Player",
+                    list(player_options.keys()),
+                )
+
+                st.json(
+                    player_options[selected_player_label]
+                )
+
+            else:
+                st.warning(
+                    "No players found. Click 'Sync Rosters / Players' first."
+                )
+
+    with tab3:
+        st.subheader("Raw Warehouse Snapshot")
+
+        st.json(summary)
+
+        if audit:
+            st.json(audit)
 # ============================================================
 # SECTION 15 - SYSTEM HEALTH PAGE
 # ============================================================
