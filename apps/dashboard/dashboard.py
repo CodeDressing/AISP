@@ -724,21 +724,51 @@ def render_games_page() -> None:
 
 
 # ============================================================
-# SECTION 11 - PREDICTION WORKBENCH
+# SECTION 11 - HUMAN-FRIENDLY PROBABILITY VIEWER
 # ============================================================
 
 def render_predictions_page() -> None:
     render_header(
-        "Prediction Workbench",
-        "Select teams, players, and matchup context to prepare AISP game and player outcome predictions.",
+        "AISP Probability Viewer",
+        "Choose a team, choose a player, select a baseball outcome in plain English, and prepare a prediction.",
         [
-            "Team Selector",
-            "Player Selector",
-            "Future Matchup",
-            "Outcome Prediction",
-            "Confidence",
+            "Plain English Team List",
+            "Plain English Player Search",
+            "Hits",
+            "Home Runs",
+            "Doubles",
+            "Triples",
+            "Probability Viewer",
         ],
     )
+
+    summary = api_get(
+        "/admin/database/summary",
+        timeout=20,
+    )
+
+    if summary:
+        c1, c2, c3 = st.columns(3)
+
+        with c1:
+            st.metric(
+                "Teams Available",
+                summary.get("teams", 0),
+            )
+
+        with c2:
+            st.metric(
+                "Players Available",
+                summary.get("players", 0),
+            )
+
+        with c3:
+            st.metric(
+                "Statcast Events",
+                summary.get("statcast_events", 0),
+            )
+
+    st.divider()
 
     teams = api_get(
         "/teams",
@@ -746,297 +776,227 @@ def render_predictions_page() -> None:
     )
 
     if not teams:
-        st.warning(
-            "No teams are loaded yet. Run POST /admin/sync/teams first, then reload this page."
+        st.error(
+            "No teams are visible yet. Go to Warehouse and run Sync Teams first."
         )
         return
 
     team_options = {
-        f"{team.get('name')} ({team.get('abbreviation')})": team
+        team.get("name", "Unknown Team"): team
         for team in teams
     }
 
-    tab1, tab2, tab3 = st.tabs(
-        [
-            "Game Predictor",
-            "Player Predictor",
-            "Saved Predictions",
-        ]
+    st.subheader("Step 1 — Choose A Team")
+
+    selected_team_name = st.selectbox(
+        "Team",
+        list(team_options.keys()),
+        help="Choose one MLB team from a regular English list.",
     )
 
-    # ========================================================
-    # TAB 1 - GAME PREDICTOR
-    # ========================================================
+    selected_team = team_options[selected_team_name]
 
-    with tab1:
-        st.subheader("Future Game Outcome Predictor")
+    st.success(
+        f"You selected: {selected_team_name}"
+    )
 
-        c1, c2 = st.columns(2)
+    with st.expander("View selected team details"):
+        st.write(f"Team: {selected_team.get('name')}")
+        st.write(f"Abbreviation: {selected_team.get('abbreviation')}")
+        st.write(f"League: {selected_team.get('league')}")
+        st.write(f"Division: {selected_team.get('division')}")
+        st.write(f"Home Ballpark: {selected_team.get('venue')}")
 
-        with c1:
-            home_label = st.selectbox(
-                "Home Team",
-                list(team_options.keys()),
-                key="prediction_home_team",
+    st.divider()
+
+    st.subheader("Step 2 — Find A Player")
+
+    player_search = st.text_input(
+        "Type a player name",
+        value="Corbin Carroll",
+        help="Example: Corbin Carroll, Aaron Judge, Shohei Ohtani, Juan Soto",
+    )
+
+    if st.button(
+        "Search Players",
+        use_container_width=True,
+    ):
+        players = api_get(
+            "/players/search",
+            params={
+                "q": player_search,
+            },
+            timeout=20,
+        )
+
+        if players:
+            st.session_state["probability_player_results"] = players
+            st.success(
+                f"Found {len(players)} player result(s)."
+            )
+        else:
+            st.warning(
+                "No players found. If this keeps happening, go to Warehouse and run Sync Rosters / Players."
             )
 
-        with c2:
-            away_label = st.selectbox(
-                "Away Team",
-                list(team_options.keys()),
-                key="prediction_away_team",
+    player_results = st.session_state.get(
+        "probability_player_results",
+        [],
+    )
+
+    selected_player = None
+
+    if player_results:
+        player_options = {
+            (
+                f"{player.get('name', 'Unknown Player')}"
+                f" — {player.get('team', 'Unknown Team')}"
+                f" — {player.get('position', 'Unknown Position')}"
+            ): player
+            for player in player_results
+        }
+
+        selected_player_label = st.selectbox(
+            "Choose Player",
+            list(player_options.keys()),
+        )
+
+        selected_player = player_options[selected_player_label]
+
+        with st.expander("View selected player details"):
+            st.write(f"Player: {selected_player.get('name')}")
+            st.write(f"Team: {selected_player.get('team')}")
+            st.write(f"Position: {selected_player.get('position')}")
+            st.write(f"Bats: {selected_player.get('bats')}")
+            st.write(f"Throws: {selected_player.get('throws')}")
+            st.write(f"Height: {selected_player.get('height')}")
+            st.write(f"Weight: {selected_player.get('weight')}")
+
+    st.divider()
+
+    st.subheader("Step 3 — Choose What You Want To Predict")
+
+    outcome = st.selectbox(
+        "Outcome",
+        [
+            "Gets at least 1 hit",
+            "Hits a single",
+            "Hits a double",
+            "Hits a triple",
+            "Hits a home run",
+            "Gets an RBI",
+            "Scores a run",
+            "Walks",
+            "Strikes out",
+            "Steals a base",
+            "Over 0.5 total bases",
+            "Over 1.5 total bases",
+            "Over 2.5 total bases",
+        ],
+    )
+
+    game_context = st.selectbox(
+        "Game Context",
+        [
+            "Any upcoming game",
+            "Home game",
+            "Away game",
+            "Against selected opponent",
+        ],
+    )
+
+    opponent_name = None
+
+    if game_context == "Against selected opponent":
+        opponent_name = st.selectbox(
+            "Opponent Team",
+            list(team_options.keys()),
+        )
+
+    st.divider()
+
+    st.subheader("Step 4 — Probability Viewer")
+
+    if st.button(
+        "Prepare Probability Prediction",
+        use_container_width=True,
+    ):
+        if not selected_player:
+            st.error(
+                "Please search for and select a player first."
+            )
+            return
+
+        st.success(
+            "Prediction setup is ready."
+        )
+
+        st.markdown("### Plain English Summary")
+
+        st.write(
+            f"Team: **{selected_team_name}**"
+        )
+
+        st.write(
+            f"Player: **{selected_player.get('name')}**"
+        )
+
+        st.write(
+            f"Outcome to predict: **{outcome}**"
+        )
+
+        if opponent_name:
+            st.write(
+                f"Opponent: **{opponent_name}**"
             )
 
-        home_team = team_options[home_label]
-        away_team = team_options[away_label]
-
-        game_date = st.text_input(
-            "Future Game Date",
-            value="2026-04-01",
+        st.info(
+            "This screen is now ready for the backend prediction endpoint. Next upgrade will connect this setup to `/predict/player` and return a real probability."
         )
 
-        model_mode = st.selectbox(
-            "Prediction Mode",
-            [
-                "Baseline Rules Model",
-                "Statcast Enhanced Model",
-                "Neural Network Future Model",
-                "Monte Carlo Simulation Future Model",
-            ],
-        )
+        st.markdown("### Future Probability Output")
 
-        if st.button(
-            "Generate Game Prediction",
-            use_container_width=True,
-        ):
-            if home_team.get("team_id") == away_team.get("team_id"):
-                st.error(
-                    "Home team and away team must be different."
-                )
-            else:
-                st.success(
-                    "Prediction workspace generated."
-                )
+        p1, p2, p3 = st.columns(3)
 
-                st.markdown(
-                    "### Matchup"
-                )
+        with p1:
+            st.metric(
+                "Estimated Probability",
+                "Pending Model",
+            )
 
-                m1, m2, m3 = st.columns(3)
+        with p2:
+            st.metric(
+                "Confidence",
+                "Pending Model",
+            )
 
-                with m1:
-                    st.metric(
-                        "Home Team",
-                        home_team.get("name"),
-                    )
+        with p3:
+            st.metric(
+                "Model",
+                "AISP Baseline",
+            )
 
-                with m2:
-                    st.metric(
-                        "Away Team",
-                        away_team.get("name"),
-                    )
-
-                with m3:
-                    st.metric(
-                        "Game Date",
-                        game_date,
-                    )
-
-                st.markdown(
-                    "### Current Prediction Output"
-                )
-
-                st.info(
-                    "This is the first UI layer. Next backend upgrade will connect this button to a real `/predict/game` API endpoint."
-                )
-
-                st.json(
-                    {
-                        "prediction_ready": True,
-                        "model_mode": model_mode,
-                        "home_team": home_team,
-                        "away_team": away_team,
-                        "game_date": game_date,
-                        "next_backend_endpoint": "/predict/game",
-                        "future_outputs": {
-                            "projected_winner": "pending_backend_model",
-                            "home_win_probability": "pending_backend_model",
-                            "away_win_probability": "pending_backend_model",
-                            "confidence": "pending_backend_model",
-                            "reasoning": [
-                                "team strength",
-                                "player availability",
-                                "starting pitcher",
-                                "recent form",
-                                "Statcast trends",
-                                "weather",
-                            ],
-                        },
-                    }
-                )
-
-    # ========================================================
-    # TAB 2 - PLAYER PREDICTOR
-    # ========================================================
-
-    with tab2:
-        st.subheader("Player Outcome Predictor")
-
-        player_query = st.text_input(
-            "Search Player",
-            value="Aaron Judge",
-            key="prediction_player_query",
-        )
-
-        if st.button(
-            "Search Player For Prediction",
-            use_container_width=True,
-        ):
-            players = api_get(
-                "/players/search",
-                params={
-                    "q": player_query,
+        st.json(
+            {
+                "team": selected_team,
+                "player": selected_player,
+                "outcome": outcome,
+                "game_context": game_context,
+                "opponent": opponent_name,
+                "next_backend_endpoint": "/predict/player",
+                "future_result_example": {
+                    "probability": "0.00 to 1.00",
+                    "confidence": "0.00 to 1.00",
+                    "reasoning": [
+                        "recent player stats",
+                        "team context",
+                        "opponent matchup",
+                        "park factors",
+                        "Statcast trends",
+                    ],
                 },
-                timeout=20,
-            )
-
-            if players:
-                st.session_state["prediction_players"] = players
-                st.dataframe(
-                    players,
-                    use_container_width=True,
-                )
-            else:
-                st.warning(
-                    "No players found. Make sure roster sync has loaded players."
-                )
-
-        players_for_selection = st.session_state.get(
-            "prediction_players",
-            [],
-        )
-
-        if players_for_selection:
-            player_options = {
-                f"{player.get('name')} - {player.get('team')} - {player.get('position')}": player
-                for player in players_for_selection
             }
-
-            selected_player_label = st.selectbox(
-                "Selected Player",
-                list(player_options.keys()),
-            )
-
-            selected_player = player_options[selected_player_label]
-
-            market = st.selectbox(
-                "Player Market",
-                [
-                    "Hit Probability",
-                    "Home Run Probability",
-                    "Total Bases",
-                    "Runs Batted In",
-                    "Strikeout Probability",
-                    "Walk Probability",
-                ],
-            )
-
-            opponent_label = st.selectbox(
-                "Opponent",
-                list(team_options.keys()),
-                key="player_prediction_opponent",
-            )
-
-            if st.button(
-                "Generate Player Prediction",
-                use_container_width=True,
-            ):
-                st.success(
-                    "Player prediction workspace generated."
-                )
-
-                st.json(
-                    {
-                        "prediction_ready": True,
-                        "player": selected_player,
-                        "market": market,
-                        "opponent": team_options[opponent_label],
-                        "next_backend_endpoint": "/predict/player",
-                        "future_outputs": {
-                            "projected_value": "pending_backend_model",
-                            "probability_over": "pending_backend_model",
-                            "probability_under": "pending_backend_model",
-                            "confidence": "pending_backend_model",
-                            "reasoning": [
-                                "season stats",
-                                "recent form",
-                                "pitcher matchup",
-                                "Statcast profile",
-                                "park factors",
-                            ],
-                        },
-                    }
-                )
-
-    # ========================================================
-    # TAB 3 - SAVED PREDICTIONS
-    # ========================================================
-
-    with tab3:
-        st.subheader("Saved Prediction Outputs")
-
-        c1, c2 = st.columns(2)
-
-        with c1:
-            limit_games = st.slider(
-                "Game Prediction Rows",
-                10,
-                250,
-                100,
-            )
-
-            if st.button(
-                "Load Saved Game Predictions",
-                use_container_width=True,
-            ):
-                data = api_get(
-                    "/predictions/games",
-                    params={
-                        "limit": limit_games,
-                    },
-                )
-
-                if data:
-                    st.dataframe(
-                        data,
-                        use_container_width=True,
-                    )
-
-        with c2:
-            limit_players = st.slider(
-                "Player Prediction Rows",
-                10,
-                250,
-                100,
-            )
-
-            if st.button(
-                "Load Saved Player Predictions",
-                use_container_width=True,
-            ):
-                data = api_get(
-                    "/predictions/players",
-                    params={
-                        "limit": limit_players,
-                    },
-                )
-
-                if data:
-                    st.dataframe(
-                        data,
-                        use_container_width=True,
-                    )
-
+        )
 # ============================================================
 # SECTION 12 - AI ANALYST PAGE
 # ============================================================
