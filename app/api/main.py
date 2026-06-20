@@ -927,23 +927,136 @@ def admin_sync_full_rosters(
 # SECTION 16 - ENTERPRISE ADMIN & WAREHOUSE ROUTES
 # ============================================================
 
-@app.post("/admin/sync/mlb")
-def admin_sync_mlb_database(
-    season: int = 2026,
+@app.get("/admin/system/status")
+def admin_system_status(
     db: Session = Depends(get_db),
 ) -> dict:
-    service = RosterService(db=db)
 
-    result = service.run_enterprise_warehouse_sync(
-        season=season,
+    return {
+        "platform": "AISP",
+        "database_connected": check_database_connection(),
+        "teams": db.query(Team).count(),
+        "players": db.query(Player).count(),
+        "games": db.query(Game).count(),
+        "game_predictions": (
+            db.query(GamePrediction).count()
+        ),
+        "player_predictions": (
+            db.query(PlayerPrediction).count()
+        ),
+        "statcast_events": (
+            db.query(StatcastEvent).count()
+        ),
+    }
+
+
+@app.get("/admin/database/summary")
+def admin_database_summary(
+    db: Session = Depends(get_db),
+) -> dict:
+
+    return {
+        "teams": db.query(Team).count(),
+        "players": db.query(Player).count(),
+        "games": db.query(Game).count(),
+        "game_predictions": (
+            db.query(GamePrediction).count()
+        ),
+        "player_predictions": (
+            db.query(PlayerPrediction).count()
+        ),
+        "statcast_events": (
+            db.query(StatcastEvent).count()
+        ),
+        "database_connected": (
+            check_database_connection()
+        ),
+    }
+
+
+@app.get("/admin/warehouse/audit")
+def admin_warehouse_audit(
+    db: Session = Depends(get_db),
+) -> dict:
+
+    service = RosterService(
+        db=db,
+    )
+
+    return service.build_warehouse_audit()
+
+
+@app.get("/admin/platform/readiness")
+def admin_platform_readiness(
+    db: Session = Depends(get_db),
+) -> dict:
+
+    service = RosterService(
+        db=db,
+    )
+
+    audit = service.build_warehouse_audit()
+
+    score = audit.get(
+        "warehouse_score",
+        0,
     )
 
     return {
-        "status": "success",
-        "operation": "enterprise_mlb_sync",
-        "season": season,
-        "result": result,
+        "readiness_score": score,
+        "max_score": 100,
+        "status": (
+            "enterprise_ready"
+            if score >= 80
+            else "building_foundation"
+        ),
+        "audit": audit,
     }
+
+
+@app.post("/admin/sync/mlb")
+def admin_sync_mlb(
+    season: int = 2026,
+    db: Session = Depends(get_db),
+) -> dict:
+
+    service = RosterService(
+        db=db,
+    )
+
+    return service.run_enterprise_warehouse_sync(
+        season=season,
+    )
+
+
+@app.post("/admin/sync/teams")
+def admin_sync_teams(
+    season: int = 2026,
+    db: Session = Depends(get_db),
+) -> dict:
+
+    service = RosterService(
+        db=db,
+    )
+
+    return service.sync_teams_only(
+        season=season,
+    )
+
+
+@app.post("/admin/sync/rosters")
+def admin_sync_rosters(
+    season: int = 2026,
+    db: Session = Depends(get_db),
+) -> dict:
+
+    service = RosterService(
+        db=db,
+    )
+
+    return service.sync_full_rosters(
+        season=season,
+    )
 
 
 @app.post("/admin/sync/statcast/range")
@@ -953,101 +1066,40 @@ def admin_sync_statcast_range(
     season: int = 2026,
     db: Session = Depends(get_db),
 ) -> dict:
-    service = RosterService(db=db)
 
-    result = service.sync_statcast_range_to_database(
+    service = RosterService(
+        db=db,
+    )
+
+    return service.sync_statcast_range_to_database(
         start_date=start_date,
         end_date=end_date,
         season=season,
     )
 
-    return {
-        "status": "success",
-        "operation": "statcast_database_sync",
-        "source": "baseball_savant_statcast",
-        "result": result,
-    }
 
-
-@app.get("/admin/database/summary")
-def admin_database_summary(
+@app.get("/admin/data-sources/status")
+def admin_data_sources_status(
     db: Session = Depends(get_db),
 ) -> dict:
-    return {
-        "teams": db.query(Team).count(),
-        "players": db.query(Player).count(),
-        "games": db.query(Game).count(),
-        "game_predictions": db.query(GamePrediction).count(),
-        "player_predictions": db.query(PlayerPrediction).count(),
-        "statcast_events": db.query(StatcastEvent).count(),
-        "database_connected": check_database_connection(),
-    }
 
+    service = RosterService(
+        db=db,
+    )
 
-@app.get("/admin/system/status")
-def admin_system_status(
-    db: Session = Depends(get_db),
-) -> dict:
-    return {
-        "app_name": settings.app_name,
-        "version": settings.app_version,
-        "environment": settings.environment,
-        "database_connected": check_database_connection(),
-        "prediction_engine": settings.prediction_engine_enabled,
-        "ai_chat": settings.ai_chat_enabled,
-        "teams_loaded": db.query(Team).count(),
-        "players_loaded": db.query(Player).count(),
-        "games_loaded": db.query(Game).count(),
-        "statcast_events_loaded": db.query(StatcastEvent).count(),
-    }
+    return service.build_data_source_status()
 
 
 @app.get("/admin/warehouse/metrics")
-def warehouse_metrics(
+def admin_warehouse_metrics(
     db: Session = Depends(get_db),
 ) -> dict:
-    return {
-        "total_teams": db.query(Team).count(),
-        "total_players": db.query(Player).count(),
-        "total_games": db.query(Game).count(),
-        "total_game_predictions": db.query(GamePrediction).count(),
-        "total_player_predictions": db.query(PlayerPrediction).count(),
-        "total_statcast_events": db.query(StatcastEvent).count(),
-    }
 
+    service = RosterService(
+        db=db,
+    )
 
-@app.get("/admin/platform/readiness")
-def platform_readiness(
-    db: Session = Depends(get_db),
-) -> dict:
-    score = 0
-
-    if check_database_connection():
-        score += 20
-
-    if db.query(Team).count() > 0:
-        score += 20
-
-    if db.query(Player).count() > 0:
-        score += 20
-
-    if db.query(StatcastEvent).count() > 0:
-        score += 20
-
-    if settings.ai_chat_enabled:
-        score += 20
-
-    return {
-        "readiness_score": score,
-        "max_score": 100,
-        "status": (
-            "enterprise_ready"
-            if score >= 80
-            else "in_progress"
-        ),
-    }
-
-
+    return service.build_data_quality_summary()
 # ============================================================
 # SECTION 17 - BASEBALL SAVANT / STATCAST ROUTES
 # ============================================================
